@@ -1,0 +1,150 @@
+# Every data source the pipeline may use: where it comes from, how it is
+# fetched, its licence, and the attribution it requires. The attribution
+# block printed in the collar is generated from this file - don't hand-edit
+# attribution anywhere else.
+#
+# `verified` records when the endpoint, format and licence were last checked
+# by hand. A source with `verified: null` has not been checked yet and its
+# fetcher is not implemented; the fetch stage skips it with a warning.
+#
+# Never add Trailforks data, or Google / Esri / Bing imagery or tiles.
+
+licences:
+  ogl-bc:
+    name: Open Government Licence - British Columbia
+    url: https://www2.gov.bc.ca/gov/content/data/open-data/open-government-licence-bc
+    attribution: >-
+      Contains information licensed under the Open Government Licence -
+      British Columbia.
+  ogl-canada:
+    name: Open Government Licence - Canada
+    url: https://open.canada.ca/en/open-government-licence-canada
+    attribution: >-
+      Contains information licensed under the Open Government Licence -
+      Canada.
+  odbl:
+    name: Open Database License (ODbL) 1.0
+    url: https://www.openstreetmap.org/copyright
+    attribution: >-
+      Map data © OpenStreetMap contributors. Available under the Open
+      Database License (ODbL) from openstreetmap.org/copyright.
+
+sources:
+  # ---- Vectors: BC Freshwater Atlas (via BC Data Catalogue WFS) -----------
+  fwa_streams:
+    title: BC Freshwater Atlas - Stream Network
+    kind: wfs
+    group: water
+    endpoint: https://openmaps.gov.bc.ca/geo/pub/wfs
+    layer: pub:WHSE_BASEMAPPING.FWA_STREAM_NETWORKS_SP
+    native_crs: EPSG:3005
+    sort_by: OBJECTID
+    page_size: 10000          # server CountDefault is 10000
+    licence: ogl-bc
+    credit: Province of British Columbia
+    verified: 2026-11-22
+
+  fwa_lakes:
+    title: BC Freshwater Atlas - Lakes
+    kind: wfs
+    group: water
+    endpoint: https://openmaps.gov.bc.ca/geo/pub/wfs
+    layer: pub:WHSE_BASEMAPPING.FWA_LAKES_POLY
+    native_crs: EPSG:3005
+    sort_by: OBJECTID
+    page_size: 10000
+    licence: ogl-bc
+    credit: Province of British Columbia
+    verified: 2026-11-22
+
+  fwa_rivers:
+    title: BC Freshwater Atlas - Rivers
+    kind: wfs
+    group: water
+    endpoint: https://openmaps.gov.bc.ca/geo/pub/wfs
+    layer: pub:WHSE_BASEMAPPING.FWA_RIVERS_POLY
+    native_crs: EPSG:3005
+    sort_by: OBJECTID
+    page_size: 10000
+    licence: ogl-bc
+    credit: Province of British Columbia
+    verified: 2026-11-22
+
+  fwa_wetlands:
+    title: BC Freshwater Atlas - Wetlands
+    kind: wfs
+    group: water
+    endpoint: https://openmaps.gov.bc.ca/geo/pub/wfs
+    layer: pub:WHSE_BASEMAPPING.FWA_WETLANDS_POLY
+    native_crs: EPSG:3005
+    sort_by: OBJECTID
+    page_size: 10000
+    licence: ogl-bc
+    credit: Province of British Columbia
+    verified: 2026-11-22
+
+  # ---- Not yet verified / implemented (later milestones) -----------------
+  lidarbc_dem:
+    title: LidarBC bare-earth DEM
+    kind: lidarbc
+    group: terrain
+    endpoint: https://lidar.gov.bc.ca/
+    licence: ogl-bc
+    credit: Province of British Columbia
+    verified: null            # milestone 2
+
+  hrdem:
+    title: NRCan HRDEM Mosaic
+    kind: stac_cog
+    group: terrain
+    endpoint: https://datacube.services.geo.ca/stac/api/
+    licence: ogl-canada
+    credit: Natural Resources Canada
+    verified: null            # milestone 2
+
+  cdem:
+    title: NRCan Canadian Digital Elevation Model (CDEM)
+    kind: stac_cog
+    group: terrain
+    endpoint: https://datacube.services.geo.ca/stac/api/
+    licence: ogl-canada
+    credit: Natural Resources Canada
+    verified: null            # milestone 2
+
+  osm:
+    title: OpenStreetMap (Geofabrik British Columbia extract)
+    kind: geofabrik
+    group: vectors
+    endpoint: https://download.geofabrik.de/north-america/canada/british-columbia-latest.osm.pbf
+    licence: odbl
+    credit: OpenStreetMap contributors
+    verified: null            # milestone 3
+
+  dra_roads:
+    title: BC Digital Road Atlas
+    kind: wfs
+    group: roads
+    endpoint: https://openmaps.gov.bc.ca/geo/pub/wfs
+    layer: pub:WHSE_BASEMAPPING.DRA_DGTL_ROAD_ATLAS_MPAR_SP
+    native_crs: EPSG:3005
+    licence: ogl-bc           # TO CONFIRM - brief flags this licence as unchecked
+    credit: Province of British Columbia
+    verified: null            # milestone 3
+
+  bc_names:
+    title: BC Geographical Names
+    kind: bcgnws
+    group: names
+    endpoint: https://apps.gov.bc.ca/pub/bcgnws/
+    licence: ogl-bc
+    credit: Province of British Columbia
+    verified: null            # milestone 3
+
+  declination:
+    title: NRCan Magnetic Declination Calculator
+    kind: geomag
+    group: collar
+    endpoint: https://geomag.nrcan.gc.ca/
+    licence: ogl-canada
+    credit: Natural Resources Canada
+    verified: null            # milestone 4

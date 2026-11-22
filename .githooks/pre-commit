@@ -1,0 +1,8 @@
+#!/bin/sh
+# Installed with `make hooks`. Blocks commits that add geodata or large binaries.
+for py in python3 python; do
+  if "$py" -c "import sys" >/dev/null 2>&1; then
+    exec "$py" scripts/check_no_geodata.py --staged
+  fi
+done
+echo "pre-commit: no working python found; skipping geodata check (CI will still run it)" >&2

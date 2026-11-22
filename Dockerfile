@@ -1,0 +1,20 @@
+# Build environment: official QGIS LTR image, pinned by digest so GDAL, PROJ,
+# Python and QGIS versions never drift. QGIS 3.44.15 / GDAL 3.8.4 / Python 3.12.
+# Keep QGIS desktop on the same version (3.44.x) for styling and labels.
+FROM qgis/qgis:3.44.15-noble@sha256:907fb2cc44adc47a8eba64316c345f0675c226d11cddea47b16ef03097caea7e
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    QT_QPA_PLATFORM=offscreen \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HOME=/tmp \
+    PATH=/opt/venv/bin:$PATH
+
+# venv with system site packages so PyQGIS and the GDAL bindings stay visible.
+COPY requirements.txt /tmp/requirements.txt
+RUN python3 -m venv --system-site-packages /opt/venv \
+ && /opt/venv/bin/pip install --no-cache-dir --disable-pip-version-check -r /tmp/requirements.txt
+
+WORKDIR /work
+ENTRYPOINT ["python", "-m", "pipeline"]
+CMD ["--help"]

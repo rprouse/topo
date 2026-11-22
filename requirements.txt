@@ -1,0 +1,6 @@
+# Python dependencies installed into the image's venv (which also sees the
+# QGIS image's system packages: PyQGIS, GDAL/OGR bindings). Versions pinned.
+# PyYAML and requests match the versions the pinned QGIS image ships via apt.
+PyYAML==6.0.1
+requests==2.31.0
+pytest==8.3.4

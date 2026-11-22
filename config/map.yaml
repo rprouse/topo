@@ -1,0 +1,64 @@
+# Map parameters. Everything the pipeline needs to know about *what* map to
+# make lives here; changing these and rebuilding must not need code changes.
+
+name: fernie
+title: Fernie
+edition: "2027.1"
+
+# NAD83(CSRS) / UTM zone 11N. Verified against the EPSG registry (and checked
+# at runtime by `pipeline config`, which prints the CRS name GDAL resolves).
+crs: EPSG:2955
+
+# Map scale denominator. 25000 is the target; 30000 must also work.
+scale: 25000
+
+# Area of interest. PLACEHOLDER extents (Rob to set final values).
+# The AOI is a rectangle in the map CRS, centred on `center` (lon, lat in
+# WGS84), `width_m` x `height_m` metres. It covers both sides of the sheet.
+aoi:
+  center: [-115.06, 49.50]
+  width_m: 28000
+  height_m: 21000
+  # Extra margin fetched around the AOI so contours, hillshade and lines
+  # don't stop abruptly at the neatline.
+  buffer_m: 1000
+
+# Sheet and faces. Each side's extent is either a named part of the AOI
+# (full, west, east, north, south) or an explicit [xmin, ymin, xmax, ymax]
+# in the map CRS. Default split: west half on side A, east half on side B.
+sheet:
+  width_in: 24
+  height_in: 36
+  orientation: portrait
+  sides:
+    - id: A
+      title: Fernie West
+      extent: west
+    - id: B
+      title: Fernie East
+      extent: east
+
+terrain:
+  contour_interval_m: 20     # 10 must also work
+  index_every: 5             # every 5th contour is an index line (100 m at 20 m)
+  smoothing_sigma_m: 6       # Gaussian smoothing applied before contouring
+  hillshade_resolution_m: 3  # print-resolution hillshade (2-5 m)
+  hillshade_azimuth: 315
+  hillshade_altitude: 45
+  multidirectional: false
+  spot_heights_max: 40
+
+grid:
+  spacing_m: 1000
+
+# OpenStreetMap snapshot. Pin a date (YYYY-MM-DD) for a reproducible edition;
+# "latest" pulls whatever Geofabrik currently serves.
+osm:
+  snapshot: latest
+
+collar:
+  # PLACEHOLDER: Rob to supply final wording, ideally reviewed by a lawyer.
+  disclaimer: >-
+    [PLACEHOLDER DISCLAIMER - final wording to be supplied. This map is a
+    guide only. Conditions change. It does not show avalanche hazard. Users
+    are responsible for their own safety.]

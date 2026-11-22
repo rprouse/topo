@@ -1,0 +1,12 @@
+# Downloaded data and build outputs: never committed.
+.cache/
+build/
+
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# QGIS desktop backups / lock files
+*.qgz~
+*.qgs~
+*.qgd-journal
