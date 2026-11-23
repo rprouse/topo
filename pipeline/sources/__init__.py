@@ -23,7 +23,6 @@ FETCHERS: dict[str, ModuleType] = {
 
 # Kinds that exist in sources.yaml but whose fetchers arrive in later milestones.
 PLANNED: dict[str, str] = {
-    "geomag": "milestone 4 (render)",
 }
 
 

@@ -12,7 +12,7 @@ A reproducible pipeline that turns open data into a print-ready 1:25,000 topogra
 | 1. Skeleton: Docker image, CLI, config, cache, manifest, fetch | **Done**: BC Freshwater Atlas (streams, lakes, rivers, wetlands) |
 | 2. Terrain: DEM selection, contours, hillshade | **Done**: LidarBC, then HRDEM, then CDEM; PNG preview |
 | 3. Vectors: OSM, roads, names, corrections → `map.gpkg` | **Done**: OSM (pinned snapshot), Freshwater Atlas, official names, corrections |
-| 4. Render: QGIS project, layout, print PDF | Not started |
+| 4. Render: QGIS project, layout, print PDF | **Done**: print PDF per side with grid, collar, attribution, declination |
 | 5. Proofs and QA | Not started |
 | 6. Polish: GeoPDF, CMYK, double-sided layout, docs | Not started |
 
@@ -28,6 +28,8 @@ make fetch        # download sources into .cache/
 make terrain      # DEM composite, contours, hillshade, spot heights, preview
 make vectors      # normalise all vector data into build/map.gpkg
 make corrections-init  # create an empty authored/corrections.gpkg
+make render       # print PDFs and PNG previews per side, through qgis/fernie.qgs
+make project-init # generate the starting QGIS project (once; it is hand-edited after)
 make manifest     # write build/manifest.json
 make config       # validate config and print the resolved AOI, sheet fit and sources
 make attribution  # print the generated attribution block
@@ -99,6 +101,34 @@ Each terrain step re-runs only when its own inputs change, so tuning the contour
 An edit whose feature no longer exists in the data (because someone changed OSM) is reported as stale in `vectors-report.json`.
 
 If a stranger mapping the area would want the fix, make it in OSM with JOSM instead; it flows into the next build. Trail difficulty is the main exception: OSM has `sac_scale` on only a few trails here, so grading will mostly live in `edits`.
+
+## Render
+
+`make render` opens `qgis/fernie.qgs` headless and writes, per side of the sheet:
+- `build/print/side-A.pdf`, a print PDF at exactly the map scale (300 dpi raster, text as text, georeferenced);
+- `side-A.png`, a preview;
+- `build/print/render-project.qgs`, the project with the generated layouts, to inspect in QGIS desktop.
+
+The **print layout is generated** from `map.yaml`. The page is the sheet size; the map frame is each side's extent at the map scale, with a title band above and a collar below; the legend is a box in one corner of the map. Changing the scale (1:30,000 works) or a side's extent needs no code changes; if a side won't fit the sheet, the render stops and says by how much. Collar text is generated, never hand-edited:
+- **attribution**, from `config/sources.yaml`;
+- **declination**, computed from the high-resolution World Magnetic Model (WMMHR-2025, matching NOAA's calculator) for `collar.declination_date`;
+- **grid note**;
+- **edition and OSM date**;
+- **disclaimer**, from `collar.disclaimer` (still a placeholder).
+
+To change the collar design, edit `pipeline/layout.py`.
+
+### Editing styles and labels in QGIS
+
+The **QGIS project** holds the layers, their styles and labels. It was generated once from [`docs/symbol-spec.md`](docs/symbol-spec.md) by `make project-init`, and is now edited by hand:
+
+1. **Install QGIS 3.44.x** (the LTR the Docker image pins) and the **Noto Sans** font family. A different QGIS version or a missing font moves labels.
+2. **Run a build** (`make all`, or at least `make terrain vectors`). The project reads `build/` through relative paths.
+3. **Open `qgis/fernie.qgs`.** Restyle layers as needed, and update `docs/symbol-spec.md` to match.
+4. **Place labels** with the label toolbar (pin, move, rotate, hide). QGIS saves these in `qgis/fernie.qgd`. They are keyed on each feature's `source_id`, so they survive rebuilds; contour labels are the exception.
+5. **Save the project and commit `qgis/`**, including `fernie.qgd` and `fernie_attachments.zip`.
+
+`make project-init ARGS=--force` regenerates the project from code and **discards hand edits**. It's only for starting over.
 
 ## Data sources and licences
 

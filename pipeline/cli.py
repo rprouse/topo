@@ -12,7 +12,6 @@ from .attribution import attribution_text
 
 # Stage name -> milestone that implements it (for stages not built yet).
 PENDING = {
-    "render": "milestone 4",
     "proofs": "milestone 5",
     "qa": "milestone 5",
 }
@@ -84,6 +83,20 @@ def _cmd_corrections_init(cfg, args) -> int:
     return 0
 
 
+def _cmd_render(cfg, args) -> int:
+    from .stages import render
+
+    render.run(cfg, sides=args.side, force=args.force)
+    return 0
+
+
+def _cmd_project_init(cfg, args) -> int:
+    import subprocess
+
+    cmd = [sys.executable, "-m", "pipeline.project", "--root", str(cfg.root)] + (["--force"] if args.force else [])
+    return subprocess.run(cmd).returncode
+
+
 def _cmd_manifest(cfg, args) -> int:
     from .stages import manifest
 
@@ -128,6 +141,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("corrections-init", help="create an empty authored/corrections.gpkg")
     sp.add_argument("--force", action="store_true", help="replace an existing file")
     sp.set_defaults(func=_cmd_corrections_init)
+
+    sp = sub.add_parser("render", help="render the print PDFs through qgis/fernie.qgs")
+    sp.add_argument("--side", nargs="+", help="only these side ids (does not update the build state)")
+    sp.add_argument("--force", action="store_true", help="render even if inputs are unchanged")
+    sp.set_defaults(func=_cmd_render)
+
+    sp = sub.add_parser("project-init", help="generate the starting QGIS project qgis/fernie.qgs")
+    sp.add_argument("--force", action="store_true", help="overwrite the existing (hand-edited) project")
+    sp.set_defaults(func=_cmd_project_init)
 
     for stage in PENDING:
         sub.add_parser(stage, help=f"({PENDING[stage]})").set_defaults(func=_cmd_pending(stage))

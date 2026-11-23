@@ -34,6 +34,7 @@ ALLOWED = [
     "authored/*.gpkg",
     "qgis/*.qgz",
     "qgis/*.qgd",
+    "qgis/*_attachments.zip",   # QGIS project attachments (style database)
     "tests/fixtures/*",
     "docs/*.pdf",
 ]

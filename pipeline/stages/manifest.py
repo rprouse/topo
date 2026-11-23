@@ -52,6 +52,8 @@ def run(cfg: Config) -> dict:
         "tools": versions.collect(cfg.root),
         "sources": sources,
         "attribution": attribution_lines(cfg, sources.keys()),
+        "declination": (stage_states.get("render") or {}).get("declination"),
+        "outputs": (stage_states.get("render") or {}).get("result", {}).get("sides"),
         "stages": {s: {"inputs_hash": st.get("inputs_hash"), "completed_at": st.get("completed_at")}
                    for s, st in stage_states.items()},
     }

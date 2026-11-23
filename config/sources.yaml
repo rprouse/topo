@@ -175,11 +175,6 @@ sources:
   # town streets, has almost no resource roads, and dates from 1997-2017.
   # Roads therefore come from OSM only.
 
-  declination:
-    title: NRCan Magnetic Declination Calculator
-    kind: geomag
-    group: collar
-    endpoint: https://geomag.nrcan.gc.ca/
-    licence: ogl-canada
-    credit: Natural Resources Canada
-    verified: null            # milestone 4
+  # Magnetic declination is computed locally from the high-resolution World
+  # Magnetic Model (WMMHR-2025, public domain) rather than fetched: NRCan's online calculator
+  # API only supports dates before 2020. See pipeline/declination.py.

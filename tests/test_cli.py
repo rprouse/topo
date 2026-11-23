@@ -8,7 +8,7 @@ def test_config_command(repo, capsys):
 
 
 def test_pending_stage_fails_clearly(repo):
-    assert main(["--root", str(repo), "render"]) == 3
+    assert main(["--root", str(repo), "proofs"]) == 3
 
 
 def test_fetch_unknown_source(repo):

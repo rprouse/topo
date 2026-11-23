@@ -101,7 +101,22 @@ vectors:
   # Spot heights are dropped within this distance of a known peak.
   spot_height_exclude_radius_m: 400
 
+# Print layout. The collar is generated at render time from these values;
+# the map frame is each side's extent at `scale`. The legend is a box drawn
+# over the map in `legend_corner` (there is little room around a 24x36 face).
+layout:
+  page_margin_mm: 8
+  title_band_mm: 14      # above the map frame
+  collar_band_mm: 40     # below the map frame
+  legend_corner: bottom_left
+  pdf_dpi: 300           # raster resolution (hillshade) in the print PDF
+  preview_dpi: 50        # PNG previews
+
 collar:
+  # Magnetic declination at the map centre, from the high-resolution World
+  # Magnetic Model (WMMHR-2025, valid to 2030), computed for this date. Use the date the
+  # edition is meant for, so a rebuild prints the same value.
+  declination_date: "2027-01-01"
   # PLACEHOLDER: Rob to supply final wording, ideally reviewed by a lawyer.
   disclaimer: >-
     [PLACEHOLDER DISCLAIMER - final wording to be supplied. This map is a
