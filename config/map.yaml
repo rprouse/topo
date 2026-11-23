@@ -17,6 +17,9 @@ scale: 25000
 # set width_m / height_m here and list the sides explicitly.
 aoi:
   center: [-115.063, 49.504]
+  # Shift of the whole map set from that centre, in metres [east, north].
+  # 2.5 km west puts more of the useful country west of town on sheet E.
+  offset_m: [-2500, 0]
   # Extra margin fetched around the AOI so contours, hillshade and lines
   # don't stop abruptly at the neatline.
   buffer_m: 1000

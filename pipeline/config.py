@@ -214,6 +214,13 @@ def load(root: Path | str = ".") -> Config:
     cx, cy = transform_point(lon, lat, "EPSG:4326", crs)
     # Snap the centre to whole metres so it is stable across GDAL/PROJ versions.
     cx, cy = round(cx), round(cy)
+    # Optional shift of the whole map set, in map-CRS metres (east, north).
+    off = aoi_cfg.get("offset_m") or [0, 0]
+    try:
+        dx, dy = (float(v) for v in off)
+    except (TypeError, ValueError):
+        raise ConfigError("map.yaml aoi.offset_m must be [east_m, north_m]") from None
+    cx, cy = cx + dx, cy + dy
     sheet = _require(m, "sheet", "map.yaml")
 
     if sheet.get("grid"):

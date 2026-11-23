@@ -116,7 +116,7 @@ It also writes:
 - `build/print/sheet.pdf`, all ten faces in order for duplex printing. Pages pair front/back as A|B, C|D, E|F, G|H and I|overview;
 - `build/print/render-project.qgs`, the project with the generated layouts, to inspect in QGIS desktop.
 
-**The sheet grid** is `sheet.grid` in `map.yaml`: 3 × 3 faces of 14 × 21 km, centred on Fernie (`aoi.center`), with neighbouring faces overlapping by 1 km so nothing falls on a seam. Faces are lettered left to right, top to bottom, and titled by direction ("Fernie North", "Fernie Southwest", and just "Fernie" for the centre sheet). Override titles with `sheet.grid.titles`.
+**The sheet grid** is `sheet.grid` in `map.yaml`: 3 × 3 faces of 14 × 21 km, centred on Fernie (`aoi.center`, shifted 2.5 km west by `aoi.offset_m` to bring more of the country west of town onto the centre sheet), with neighbouring faces overlapping by 1 km so nothing falls on a seam. Faces are lettered left to right, top to bottom, and titled by direction ("Fernie North", "Fernie Southwest", and just "Fernie" for the centre sheet). Override titles with `sheet.grid.titles`.
 
 What to send the printer, and why the print files are RGB rather than CMYK, is in [`docs/print.md`](docs/print.md).
 

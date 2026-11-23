@@ -48,6 +48,14 @@ def test_grid_faces(repo):
     assert by["E"].title == "Fernie" and by["B"].title == "Fernie North" and by["G"].title == "Fernie Southwest"
 
 
+def test_aoi_offset(repo):
+    _edit_map(repo, lambda m: m["aoi"].update(offset_m=[0, 0]))
+    base = config.load(repo).aoi
+    _edit_map(repo, lambda m: m["aoi"].update(offset_m=[-2500, 300]))
+    moved = config.load(repo).aoi
+    assert [b - a for a, b in zip(base, moved)] == pytest.approx([-2500, 300, -2500, 300])
+
+
 def test_grid_titles_and_ids(repo):
     _edit_map(repo, lambda m: m["sheet"]["grid"].update(rows=1, columns=2, ids=["W", "X"], titles={"X": "Island Lake"}))
     cfg = config.load(repo)
