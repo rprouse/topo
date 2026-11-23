@@ -130,13 +130,50 @@ To change the collar design, edit `pipeline/layout.py`.
 
 The **QGIS project** holds the layers, their styles and labels. It was generated once from [`docs/symbol-spec.md`](docs/symbol-spec.md) by `make project-init`, and is now edited by hand:
 
-1. **Install QGIS 3.44.x** (the LTR the Docker image pins) and the **Noto Sans** font family. A different QGIS version or a missing font moves labels.
+1. **Install QGIS 3.44.x** (the LTR the Docker image pins) and the **Noto Sans** font family, regular, bold and italic, from Google Fonts. A different QGIS version or a missing font moves labels. **Don't open the project in QGIS 4.x:** it may save it in a format 3.44 can't read, and labels would no longer match the Docker build.
 2. **Run a build** (`make all`, or at least `make terrain vectors`). The project reads `build/` through relative paths.
-3. **Open `qgis/fernie.qgs`.** Restyle layers as needed, and update `docs/symbol-spec.md` to match.
-4. **Place labels** with the label toolbar (pin, move, rotate, hide). QGIS saves these in `qgis/fernie.qgd`. They are keyed on each feature's `source_id`, so they survive rebuilds; contour labels are the exception.
-5. **Save the project and commit `qgis/`**, including `fernie.qgd` and `fernie_attachments.zip`.
+3. **Open `qgis/fernie.qgs`.** Restyle layers as needed (see [Changing symbols and colours](#changing-symbols-and-colours)), and update `docs/symbol-spec.md` to match.
+4. **Place labels** with the label toolbar (View → Toolbars → Label Toolbar): pin, move, rotate, hide. QGIS saves these in `qgis/fernie.qgd`. They are keyed on each feature's `source_id`, so they survive rebuilds; contour labels are the exception.
+5. **Save the project and commit `qgis/`**, including `fernie.qgd` and `fernie_attachments.zip`. Leave the project's path setting on relative. QGIS's `fernie.qgs~` backup is git-ignored.
 
 `make project-init ARGS=--force` regenerates the project from code and **discards hand edits**. It's only for starting over.
+
+### Reviewing the map
+
+After a build, look at these, roughly in this order:
+
+1. **`build/qa-report.md`:** the to-do list. Open it in VS Code's Markdown preview, so the OSM links are clickable.
+2. **The print PDFs:** `build/print/side-A.pdf`, `side-B.pdf`, or `sheet.pdf` with both. View at 100% zoom to judge true size.
+3. **The print layout in QGIS:** open `build/print/render-project.qgs`, then Project → Layout Manager → **Side A** or **Side B**. This is a throwaway copy that `make render` regenerates: look, but don't edit or save it. Collar changes go in `pipeline/layout.py` or `map.yaml`.
+4. **The map itself:** open `qgis/fernie.qgs`. Toggle layers in the Layers panel (top of the list draws on top). Use the **Identify** tool ("i" icon) to read any feature's `source_id`, `class` and `name`; that `source_id` is what a correction refers to.
+5. **`build/terrain/coverage.png`:** which elevation source supplied each part of the map.
+6. **Proof tiles:** `build/proofs/side-A-letter.pdf` and the `-grey` version. Print at **100% / Actual size**.
+
+The map canvas in QGIS doesn't show the collar, grid labels or legend: those are generated at render time. Judge the finished look in the PDFs or the render project.
+
+### Changing symbols and colours
+
+All styling lives in `qgis/fernie.qgs`. The layers use rule-based styles: one rule per `class`, each rule with its own symbol.
+
+**To change a colour or line width** (e.g. a road class):
+1. Right-click the layer (**Roads**) → **Properties** → **Symbology**.
+2. Double-click the symbol of the rule to change (e.g. **Paved road**).
+3. Pick the symbol layer to edit. Roads with a casing have two: the first is the black **casing**, the second the coloured **fill**. Change **Color**, or **Stroke width** (keep the unit in **Millimeters**).
+4. **OK**, then **Apply** and look at the canvas.
+
+**To change a symbol's shape** (e.g. add pylon ticks to power lines):
+1. **Power lines** → Properties → Symbology → double-click the **Power line** rule's symbol.
+2. Click **+** to add a symbol layer, then set its type to **Marker Line**. Set its interval (e.g. 8 mm), and choose a marker for the sub-symbol (e.g. a small black square or a short line).
+3. To change a point symbol (peaks, huts), edit the marker the same way: shape, size in mm, fill and outline.
+
+**Rules to keep:**
+- **Minimum line width 0.1 mm, minimum text 6.5 pt.** Thinner lines and smaller text disappear in print.
+- **Leave "Symbol levels" on for Roads and Railways** (Symbology → Advanced → Symbol levels). It draws every casing before any fill, which is what makes junctions look clean. When adding a road class, give its casing level 0 and its fill a level above the others.
+- **Don't set any layer's blend mode to Multiply.** In PDF export it drops italic labels. The hillshade is already set up to darken the map without it.
+- **The rule's label text is what the legend prints.** Edit it in the rule's properties to rename a legend entry.
+- **Check the result in greyscale too** (the `-grey` proofs).
+
+Then save the project, run `make render` (and `make proofs` for paper), update `docs/symbol-spec.md` with the new values, and commit `qgis/` and the spec together.
 
 ## Proofs
 
