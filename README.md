@@ -11,7 +11,7 @@ A reproducible pipeline that turns open data into a print-ready 1:25,000 topogra
 |---|---|
 | 1. Skeleton: Docker image, CLI, config, cache, manifest, fetch | **Done**: BC Freshwater Atlas (streams, lakes, rivers, wetlands) |
 | 2. Terrain: DEM selection, contours, hillshade | **Done**: LidarBC, then HRDEM, then CDEM; PNG preview |
-| 3. Vectors: OSM, roads, names, corrections → `map.gpkg` | Not started |
+| 3. Vectors: OSM, roads, names, corrections → `map.gpkg` | **Done**: OSM (pinned snapshot), Freshwater Atlas, official names, corrections |
 | 4. Render: QGIS project, layout, print PDF | Not started |
 | 5. Proofs and QA | Not started |
 | 6. Polish: GeoPDF, CMYK, double-sided layout, docs | Not started |
@@ -26,6 +26,8 @@ Docker and GNU make, nothing else. On Windows, install make (for example `winget
 make all          # every stage, in order (stops at the first unimplemented stage for now)
 make fetch        # download sources into .cache/
 make terrain      # DEM composite, contours, hillshade, spot heights, preview
+make vectors      # normalise all vector data into build/map.gpkg
+make corrections-init  # create an empty authored/corrections.gpkg
 make manifest     # write build/manifest.json
 make config       # validate config and print the resolved AOI, sheet fit and sources
 make attribution  # print the generated attribution block
@@ -77,6 +79,29 @@ Each raster is resampled onto a shared 2 m grid (`dem_resolution_m`) and cached.
 
 Each terrain step re-runs only when its own inputs change, so tuning the contour settings doesn't rebuild the DEM.
 
+## Vectors
+
+`make vectors` writes `build/map.gpkg` (layers and fields: [`docs/schema.md`](docs/schema.md)) and `build/vectors-report.json`.
+
+- **OpenStreetMap** comes from the Overpass API for the AOI only. `osm.snapshot` in `map.yaml` pins a date, and Overpass returns OSM as it was that day, so rebuilding gives byte-identical data. For a new edition, move the date forward.
+- **[`config/osm_mapping.yaml`](config/osm_mapping.yaml)** is the one place OSM tags are interpreted: which features go in which layer, their `class`, and which tags are kept. Change it rather than the code.
+- **Water** comes from the BC Freshwater Atlas (official, OGL-BC), not OSM.
+- **Official names** come from Canadian Geographical Names. OSM peaks and places keep their OSM names. Where they differ from the official name, or one exists without the other, `vectors-report.json` lists it for you to decide.
+- **Spot heights** are DEM summits with no named peak nearby.
+
+### Corrections
+
+`authored/corrections.gpkg` holds fixes that are specific to this map, or that can't go in OSM. It is committed and applied last. Open it in QGIS, or in QField in the field.
+
+- **`edits`** (a table): change a feature by its `source_id` (see the `source_id` field in `map.gpkg`). `action` is `set` (with `field` and `value`, e.g. `difficulty` = `difficult` or `name` = `Lizard Range`), `hide`, `delete` or `close` (`value` is the closure note). Optional `layer` restricts the edit to one layer.
+- **`added_points`, `added_lines`, `added_polygons`**: new features. Set `id`, `target_layer` (e.g. `trails`, `pois`), `class` and `name`; other fields go in `attributes` as JSON, e.g. `{"difficulty": "moderate"}`.
+
+An edit whose feature no longer exists in the data (because someone changed OSM) is reported as stale in `vectors-report.json`.
+
+If a stranger mapping the area would want the fix, make it in OSM with JOSM instead; it flows into the next build. Trail difficulty is the main exception: OSM has `sac_scale` on only a few trails here, so grading will mostly live in `edits`.
+
 ## Data sources and licences
+
+**Not used, for licence reasons:** the BC Digital Road Atlas, Forest Tenure roads and BC Geographical Names are "Access Only" in the BC Data Catalogue: no reproduction without written permission from the Province. Names come from the federal Canadian Geographical Names (OGL-Canada) instead. Roads come from OSM alone. The federal CanVec roads were checked and rejected: in this area they are mostly town streets, with almost no resource roads, dated 1997–2017. If forest service roads turn out to be missing from OSM, either map them in OSM or ask the Province for permission to use the Digital Road Atlas (details in `config/sources.yaml`).
 
 See `config/sources.yaml`. A source's `verified` date records when its endpoint, format and licence were last checked by hand. Unverified sources are skipped. Trailforks data and Google, Esri or Bing imagery must never be added; config loading rejects Trailforks outright.

@@ -12,7 +12,6 @@ from .attribution import attribution_text
 
 # Stage name -> milestone that implements it (for stages not built yet).
 PENDING = {
-    "vectors": "milestone 3",
     "render": "milestone 4",
     "proofs": "milestone 5",
     "qa": "milestone 5",
@@ -65,6 +64,26 @@ def _cmd_terrain(cfg, args) -> int:
     return 0
 
 
+def _cmd_vectors(cfg, args) -> int:
+    from .stages import vectors
+
+    vectors.run(cfg, force=args.force)
+    return 0
+
+
+def _cmd_corrections_init(cfg, args) -> int:
+    from . import corrections
+
+    path = cfg.root / cfg.map.get("vectors", {}).get("corrections", "authored/corrections.gpkg")
+    try:
+        corrections.init(path, cfg.crs, force=args.force)
+    except FileExistsError as e:
+        print(e, file=sys.stderr)
+        return 1
+    print(f"created {path.relative_to(cfg.root)}")
+    return 0
+
+
 def _cmd_manifest(cfg, args) -> int:
     from .stages import manifest
 
@@ -101,6 +120,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("terrain", help="DEM composite, contours, hillshade, spot heights, preview")
     sp.add_argument("--force", action="store_true", help="re-run every step even if inputs are unchanged")
     sp.set_defaults(func=_cmd_terrain)
+
+    sp = sub.add_parser("vectors", help="normalise vector sources into build/map.gpkg")
+    sp.add_argument("--force", action="store_true", help="rebuild even if inputs are unchanged")
+    sp.set_defaults(func=_cmd_vectors)
+
+    sp = sub.add_parser("corrections-init", help="create an empty authored/corrections.gpkg")
+    sp.add_argument("--force", action="store_true", help="replace an existing file")
+    sp.set_defaults(func=_cmd_corrections_init)
 
     for stage in PENDING:
         sub.add_parser(stage, help=f"({PENDING[stage]})").set_defaults(func=_cmd_pending(stage))

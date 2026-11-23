@@ -139,34 +139,41 @@ sources:
     credit: Natural Resources Canada
     verified: 2026-11-22
 
+  # OpenStreetMap through the Overpass API, AOI only. The snapshot date is
+  # set by osm.snapshot in map.yaml (Overpass answers from its history for a
+  # pinned date). Geofabrik's BC extract was the alternative, but it only
+  # serves "latest", so it can't be pinned.
   osm:
-    title: OpenStreetMap (Geofabrik British Columbia extract)
-    kind: geofabrik
+    title: OpenStreetMap
+    kind: overpass
     group: vectors
-    endpoint: https://download.geofabrik.de/north-america/canada/british-columbia-latest.osm.pbf
+    endpoint: https://overpass-api.de/api/interpreter
+    route_types: [hiking, foot, mtb, bicycle, ski, piste]
     licence: odbl
     credit: OpenStreetMap contributors
-    verified: null            # milestone 3
+    verified: 2026-11-22
 
-  dra_roads:
-    title: BC Digital Road Atlas
-    kind: wfs
-    group: roads
-    endpoint: https://openmaps.gov.bc.ca/geo/pub/wfs
-    layer: pub:WHSE_BASEMAPPING.DRA_DGTL_ROAD_ATLAS_MPAR_SP
-    native_crs: EPSG:3005
-    licence: ogl-bc           # TO CONFIRM - brief flags this licence as unchecked
-    credit: Province of British Columbia
-    verified: null            # milestone 3
-
-  bc_names:
-    title: BC Geographical Names
-    kind: bcgnws
+  # Official names: Canadian Geographical Names (federal, includes BC's
+  # official names), OGL-Canada.
+  cgn_names:
+    title: Canadian Geographical Names
+    kind: geonames
     group: names
-    endpoint: https://apps.gov.bc.ca/pub/bcgnws/
-    licence: ogl-bc
-    credit: Province of British Columbia
-    verified: null            # milestone 3
+    endpoint: https://geogratis.gc.ca/services/geoname/en/geonames.json
+    licence: ogl-canada
+    credit: Natural Resources Canada
+    verified: 2026-11-22
+
+  # NOT USED - licence. The BC Data Catalogue lists these as "Access Only":
+  # the Province's copyright terms say reproduction is not permitted without
+  # written permission (request form: https://forms.gov.bc.ca/copyright-permission-request/).
+  #   - BC Digital Road Atlas (WHSE_BASEMAPPING.DRA_DGTL_ROAD_ATLAS_MPAR_SP)
+  #   - Forest Tenure road sections (WHSE_FOREST_TENURE.FTEN_ROAD_SECTION_LINES_SVW)
+  #   - BC Geographical Names / BCGNWS (WHSE_BASEMAPPING.GNS_GEOGRAPHICAL_NAMES_SP)
+  # Open alternatives checked: CGN (used, above) for names. For roads, CanVec
+  # transport (OGL-Canada) was examined and rejected: in this AOI it is mostly
+  # town streets, has almost no resource roads, and dates from 1997-2017.
+  # Roads therefore come from OSM only.
 
   declination:
     title: NRCan Magnetic Declination Calculator

@@ -31,6 +31,8 @@ def run(cfg: Config) -> dict:
             "retrieved_at": rec["retrieved_at"],
             "feature_count": rec.get("feature_count"),
             "files": rec["files"],
+            **({"osm_snapshot": rec["snapshot"], "osm_database_timestamp": rec["osm_base"]}
+               if rec.get("osm_base") else {}),
         }
 
     manifest = {

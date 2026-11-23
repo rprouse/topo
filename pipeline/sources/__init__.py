@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from types import ModuleType
 
-from . import wfs
+from . import geonames, overpass, wfs
 
 # Kinds fetched together by the coverage-driven terrain coordinator
 # (sources/terrain.py) rather than one by one.
@@ -17,12 +17,12 @@ TERRAIN_KINDS = ("lidarbc", "stac_cog")
 
 FETCHERS: dict[str, ModuleType] = {
     "wfs": wfs,
+    "overpass": overpass,
+    "geonames": geonames,
 }
 
 # Kinds that exist in sources.yaml but whose fetchers arrive in later milestones.
 PLANNED: dict[str, str] = {
-    "geofabrik": "milestone 3 (vectors)",
-    "bcgnws": "milestone 3 (vectors)",
     "geomag": "milestone 4 (render)",
 }
 

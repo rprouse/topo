@@ -81,10 +81,25 @@ terrain:
 grid:
   spacing_m: 1000
 
-# OpenStreetMap snapshot. Pin a date (YYYY-MM-DD) for a reproducible edition;
-# "latest" pulls whatever Geofabrik currently serves.
+# OpenStreetMap snapshot. A date (YYYY-MM-DD) pins the edition: Overpass
+# returns OSM as it was at 00:00 UTC that day, so rebuilding gives the same
+# data. "latest" uses the live database (refreshed at most once a day).
+# For a new edition, move the date forward and read the QA change report.
 osm:
-  snapshot: latest
+  snapshot: "2026-11-01"
+
+vectors:
+  osm_mapping: config/osm_mapping.yaml      # OSM tags -> layers and classes
+  corrections: authored/corrections.gpkg    # hand-made fixes, applied last
+  # OSM peaks and places are compared with official names (Canadian
+  # Geographical Names) of these kinds: first by name within name_radius_m,
+  # then by proximity within radius_m. OSM names are kept; every difference
+  # is listed in vectors-report.json to settle with a correction.
+  name_match:
+    peak: {concise: [MTN], radius_m: 750, name_radius_m: 5000}
+    place: {concise: [CITY, TOWN, VILG, HAM, UNP, LOCL], radius_m: 2500, name_radius_m: 5000}
+  # Spot heights are dropped within this distance of a known peak.
+  spot_height_exclude_radius_m: 400
 
 collar:
   # PLACEHOLDER: Rob to supply final wording, ideally reviewed by a lawyer.

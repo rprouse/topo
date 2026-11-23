@@ -28,14 +28,14 @@ DOCKER_RUN = docker run --rm $(USER_FLAG) \
 
 STAGES := fetch terrain vectors render proofs qa manifest
 
-.PHONY: all image $(STAGES) config attribution test check hooks shell clean distclean
+.PHONY: all image $(STAGES) config attribution corrections-init test check hooks shell clean distclean
 
 all: fetch terrain vectors render proofs qa manifest
 
 image:
 	docker build -q -t $(IMAGE) . >/dev/null
 
-$(STAGES) config attribution: image
+$(STAGES) config attribution corrections-init: image
 	$(DOCKER_RUN) $@ $(ARGS)
 
 test: image

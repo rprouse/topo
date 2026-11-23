@@ -1,0 +1,151 @@
+# OSM tags -> map layers and classes. The single place where OSM tagging is
+# interpreted; the code only evaluates these rules.
+#
+# Each output layer reads one or more of GDAL's OSM layers (`from`: points,
+# lines, multipolygons). For each feature the `rules` are tried in order and
+# the first match sets `class`; features matching no rule are left out of
+# that layer. A feature may appear in several layers.
+#
+# A rule's `when` is a set of tag conditions, all of which must hold:
+#   key: value            tag equals value
+#   key: [a, b]           tag is one of the values
+#   key: true             tag is present (any value)
+#   key: false            tag is absent
+#   key: {regex: '...'}   tag matches the regular expression
+#   key: {not: [a, b]}    tag is absent or not one of the values
+# `class` is a fixed string, or `{tag: key}` to use that tag's value.
+#
+# `attributes` copies tags into output fields (field: tag). Every layer also
+# gets `name` (from name) automatically. `derived` computes extra fields with
+# the same rule syntax (first match wins; a rule without `when` is the default).
+#
+# `as_point: true` turns polygons into points (point on surface), so e.g.
+# parking mapped as an area or a node ends up in the same point layer.
+#
+# Classes are what the QGIS styles key on; see docs/symbol-spec.md.
+
+paved: &paved [paved, asphalt, concrete, "concrete:plates", chipseal, paving_stones, sett]
+
+layers:
+  roads:
+    from: [lines]
+    geometry: line
+    attributes: {ref: ref, surface: surface, tracktype: tracktype, access: access,
+                 bridge: bridge, tunnel: tunnel, layer: layer, operator: operator}
+    rules:
+      - {class: highway, when: {highway: [motorway, motorway_link, trunk, trunk_link]}}
+      - {class: major, when: {highway: [primary, primary_link, secondary, secondary_link]}}
+      # Forest service roads, by name ("... FSR", "... Forest Service Road").
+      - class: fsr
+        when:
+          highway: [tertiary, unclassified, track, service, residential]
+          name: {regex: '(?i)\b(fsr|f\.s\.r\.|forest service road)\b'}
+      - {class: paved, when: {highway: [tertiary, tertiary_link, unclassified, residential, living_street, service], surface: *paved}}
+      # Town streets without a surface tag are assumed paved...
+      - {class: paved, when: {highway: [tertiary, tertiary_link, residential, living_street], surface: false}}
+      # ...rural unclassified and service roads without one are assumed gravel.
+      - {class: gravel, when: {highway: [tertiary, tertiary_link, unclassified, residential, service]}}
+      - {class: track, when: {highway: track, tracktype: [grade1, grade2]}}
+      - {class: track_4wd, when: {highway: track}}
+
+  trails:
+    from: [lines]
+    geometry: line
+    attributes: {sac_scale: sac_scale, trail_visibility: trail_visibility, surface: surface,
+                 mtb_scale: "mtb:scale", mtb_scale_imba: "mtb:scale:imba", access: access,
+                 foot: foot, bicycle: bicycle}
+    rules:
+      - {class: path, when: {highway: [path, footway, bridleway]}}
+      - {class: steps, when: {highway: steps}}
+      - {class: cycleway, when: {highway: cycleway}}
+    derived:
+      # Hiking difficulty from sac_scale; the corrections layer can override
+      # it (most trails here have no sac_scale in OSM).
+      difficulty:
+        - {value: easy, when: {sac_scale: hiking}}
+        - {value: moderate, when: {sac_scale: mountain_hiking}}
+        - {value: difficult, when: {sac_scale: [demanding_mountain_hiking, alpine_hiking,
+                                                demanding_alpine_hiking, difficult_alpine_hiking]}}
+        - {value: unknown}
+
+  railways:
+    from: [lines]
+    geometry: line
+    rules:
+      - {class: rail, when: {railway: rail}}
+
+  lifts:
+    from: [lines]
+    geometry: line
+    rules:
+      - {class: {tag: aerialway}, when: {aerialway: [cable_car, gondola, mixed_lift, chair_lift,
+                                                     drag_lift, t-bar, j-bar, platter, rope_tow, magic_carpet]}}
+
+  power_lines:
+    from: [lines]
+    geometry: line
+    rules:
+      - {class: line, when: {power: line}}
+      - {class: minor_line, when: {power: minor_line}}
+
+  buildings:
+    from: [multipolygons]
+    geometry: polygon
+    rules:
+      - {class: building, when: {building: true}}
+
+  landcover:
+    from: [multipolygons]
+    geometry: polygon
+    rules:
+      - {class: glacier, when: {natural: glacier}}
+      - {class: rock, when: {natural: bare_rock}}
+      - {class: scree, when: {natural: scree}}
+      - {class: forest, when: {natural: wood}}
+      - {class: forest, when: {landuse: forest}}
+      - {class: scrub, when: {natural: scrub}}
+      - {class: heath, when: {natural: heath}}
+      - {class: grass, when: {natural: grassland}}
+      - {class: grass, when: {landuse: [meadow, grass]}}
+      - {class: farmland, when: {landuse: [farmland, farmyard, orchard]}}
+      - {class: urban, when: {landuse: [residential, commercial, retail]}}
+      - {class: industrial, when: {landuse: [industrial, railway]}}
+      - {class: quarry, when: {landuse: [quarry, landfill]}}
+      - {class: cemetery, when: {landuse: cemetery}}
+      - {class: golf, when: {leisure: golf_course}}
+      - {class: park, when: {leisure: park}}
+      - {class: ski_area, when: {landuse: winter_sports}}
+
+  protected_areas:
+    from: [multipolygons]
+    geometry: polygon
+    attributes: {protect_class: protect_class, operator: operator}
+    rules:
+      - {class: national_park, when: {boundary: national_park}}
+      - {class: protected, when: {boundary: protected_area}}
+      - {class: protected, when: {leisure: nature_reserve}}
+
+  pois:
+    from: [points, multipolygons]
+    geometry: point
+    as_point: true
+    attributes: {ele: ele, capacity: capacity, fee: fee, operator: operator}
+    rules:
+      - {class: peak, when: {natural: [peak, volcano]}}
+      - {class: saddle, when: {natural: saddle}}
+      - {class: saddle, when: {mountain_pass: "yes"}}
+      - {class: viewpoint, when: {tourism: viewpoint}}
+      - {class: hut, when: {tourism: [alpine_hut, wilderness_hut]}}
+      - {class: shelter, when: {amenity: shelter}}
+      - {class: trailhead, when: {highway: trailhead}}
+      - {class: parking, when: {amenity: parking}}
+      - {class: campsite, when: {tourism: camp_site}}
+      - {class: waterfall, when: {waterway: waterfall}}
+
+  places:
+    from: [points]
+    geometry: point
+    attributes: {population: population}
+    rules:
+      - {class: {tag: place}, when: {place: [city, town, village, hamlet, suburb, neighbourhood,
+                                             locality, isolated_dwelling]}}
