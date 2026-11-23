@@ -344,7 +344,7 @@ def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict, *, 
     leg.setAutoUpdateModel(False)
     root = leg.model().rootGroup()
     root.clear()
-    for name in ("Roads", "Trails", "Railways", "Lifts", "Power lines", "Streams", "Lakes and rivers",
+    for name in ("Roads", "Trails", "Railways", "Lifts", "Power lines", "Power towers", "Streams", "Lakes and rivers",
                  "Contours", "Points of interest", "Spot heights", "Protected areas", "Buildings"):
         layers = project.mapLayersByName(name)
         if layers:

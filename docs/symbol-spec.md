@@ -86,7 +86,7 @@ Difficulty comes from OSM `sac_scale`, overridden in `authored/corrections.gpkg`
 
 ## Other lines
 
-Railway: black 0.5 mm with white 3 / 3 dashes. Ski lift: black 0.3 mm. Power line: grey `#6e6e6e` 0.15 mm. Park or protected area: green `#3d8b37` dashed 0.5 mm outline.
+Railway: black 0.5 mm with white 3 / 3 dashes. Ski lift: black 0.3 mm. Power line: grey `#6e6e6e` 0.15 mm. Power line tower: grey `#6e6e6e` square 0.8 mm, no outline, drawn over the line. Park or protected area: green `#3d8b37` dashed 0.5 mm outline.
 
 ## Place names
 

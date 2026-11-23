@@ -88,6 +88,14 @@ layers:
       - {class: line, when: {power: line}}
       - {class: minor_line, when: {power: minor_line}}
 
+  # Transmission towers (and portals, where a line enters a substation).
+  # Distribution poles are left out: too dense to read at 1:25,000.
+  power_towers:
+    from: [points]
+    geometry: point
+    rules:
+      - {class: tower, when: {power: [tower, portal]}}
+
   buildings:
     from: [multipolygons]
     geometry: polygon

@@ -287,6 +287,12 @@ def build(root: Path, force: bool = False) -> Path:
     pw.setRenderer(r)
     add(pw)
 
+    pt = vec("power_towers", "Power towers")
+    r, _ = rules([(marker_symbol({"name": "square", "color": S.C["power"], "size": "0.8", "outline_style": "no"}),
+                   "TRUE", "Power line tower")], V)
+    pt.setRenderer(r)
+    add(pt)
+
     rw = vec("railways", "Railways")
     r, _ = rules([(line_symbol(line_layer(S.C["black"], 0.5), line_layer("#ffffff", 0.28, dash=(3, 3), pass_=1)),
                    "TRUE", "Railway")], V)

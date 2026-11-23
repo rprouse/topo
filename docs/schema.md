@@ -24,6 +24,7 @@ OSM-derived layers come from `config/osm_mapping.yaml`; edit that file to change
 | `railways` | line | OSM | `rail` | |
 | `lifts` | line | OSM | the `aerialway` value (`chair_lift`, `t-bar`, …) | |
 | `power_lines` | line | OSM | `line`, `minor_line` | |
+| `power_towers` | point | OSM | `tower` (`power=tower` and `power=portal`) | |
 | `buildings` | polygon | OSM | `building` | |
 | `landcover` | polygon | OSM | `forest`, `scrub`, `heath`, `grass`, `rock`, `scree`, `glacier`, `farmland`, `urban`, `industrial`, `quarry`, `cemetery`, `golf`, `park`, `ski_area` | |
 | `protected_areas` | polygon | OSM | `national_park`, `protected` | `protect_class`, `operator` |
