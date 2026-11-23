@@ -138,6 +138,42 @@ def _require(d: dict, key: str, ctx: str) -> Any:
     return d[key]
 
 
+COMPASS_3X3 = ["Northwest", "North", "Northeast", "West", "", "East", "Southwest", "South", "Southeast"]
+
+
+def grid_faces(cx: float, cy: float, grid: dict, title: str) -> tuple[Bbox, list[Side]]:
+    """Faces of a rows x cols map set centred on (cx, cy), in reading order.
+
+    Neighbouring faces share `overlap_m` along their common edge. Returns the
+    AOI (the union of the faces) and the faces. Ids default to A, B, C, ...;
+    titles default to compass names for a 3 x 3 set ("<title> North", ...,
+    the centre face just "<title>") and "<title> <id>" otherwise."""
+    rows, cols = int(grid.get("rows", 3)), int(grid.get("columns", 3))
+    fw, fh = float(_require(grid, "face_width_m", "sheet.grid")), float(_require(grid, "face_height_m", "sheet.grid"))
+    ov = float(grid.get("overlap_m", 0))
+    if ov < 0 or ov >= min(fw, fh):
+        raise ConfigError("sheet.grid.overlap_m must be >= 0 and smaller than a face")
+    ids = [str(i) for i in grid.get("ids") or [chr(ord("A") + i) for i in range(rows * cols)]]
+    if len(ids) != rows * cols or len(set(ids)) != len(ids):
+        raise ConfigError(f"sheet.grid.ids must list {rows * cols} distinct ids")
+    titles = {str(k): str(v) for k, v in (grid.get("titles") or {}).items()}
+    W, H = cols * fw - (cols - 1) * ov, rows * fh - (rows - 1) * ov
+    left, top = cx - W / 2, cy + H / 2
+    faces = []
+    for r in range(rows):
+        for c in range(cols):
+            fid = ids[r * cols + c]
+            x0, y1 = left + c * (fw - ov), top - r * (fh - ov)
+            if fid in titles:
+                t = titles[fid]
+            elif rows == cols == 3:
+                t = f"{title} {COMPASS_3X3[r * 3 + c]}".strip()
+            else:
+                t = f"{title} {fid}"
+            faces.append(Side(id=fid, title=t, extent=(x0, y1 - fh, x0 + fw, y1)))
+    return (left, cy - H / 2, left + W, top), faces
+
+
 def _side_extent(spec: Any, aoi: Bbox, ctx: str) -> Bbox:
     xmin, ymin, xmax, ymax = aoi
     xmid, ymid = (xmin + xmax) / 2, (ymin + ymax) / 2
@@ -174,26 +210,30 @@ def load(root: Path | str = ".") -> Config:
 
     aoi_cfg = _require(m, "aoi", "map.yaml")
     lon, lat = (float(v) for v in _require(aoi_cfg, "center", "map.yaml aoi"))
-    w = float(_require(aoi_cfg, "width_m", "map.yaml aoi"))
-    h = float(_require(aoi_cfg, "height_m", "map.yaml aoi"))
     buf = float(aoi_cfg.get("buffer_m", 0))
     cx, cy = transform_point(lon, lat, "EPSG:4326", crs)
-    # Snap the AOI to whole metres so it is stable across GDAL/PROJ versions.
+    # Snap the centre to whole metres so it is stable across GDAL/PROJ versions.
     cx, cy = round(cx), round(cy)
-    aoi = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
-    aoi_buffered = (aoi[0] - buf, aoi[1] - buf, aoi[2] + buf, aoi[3] + buf)
-
     sheet = _require(m, "sheet", "map.yaml")
-    sides = []
-    for i, sd in enumerate(_require(sheet, "sides", "map.yaml sheet")):
-        ctx = f"map.yaml sheet.sides[{i}]"
-        sides.append(Side(
-            id=str(_require(sd, "id", ctx)),
-            title=str(sd.get("title", "")),
-            extent=_side_extent(_require(sd, "extent", ctx), aoi, ctx),
-        ))
-    if not sides:
-        raise ConfigError("map.yaml: sheet.sides must list at least one side")
+
+    if sheet.get("grid"):
+        # A map set: the faces come from the grid and the AOI is their union.
+        aoi, sides = grid_faces(cx, cy, sheet["grid"], str(m.get("title", "Map")))
+    else:
+        w = float(_require(aoi_cfg, "width_m", "map.yaml aoi"))
+        h = float(_require(aoi_cfg, "height_m", "map.yaml aoi"))
+        aoi = (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+        sides = []
+        for i, sd in enumerate(_require(sheet, "sides", "map.yaml sheet")):
+            ctx = f"map.yaml sheet.sides[{i}]"
+            sides.append(Side(
+                id=str(_require(sd, "id", ctx)),
+                title=str(sd.get("title", "")),
+                extent=_side_extent(_require(sd, "extent", ctx), aoi, ctx),
+            ))
+        if not sides:
+            raise ConfigError("map.yaml: sheet.sides must list at least one side")
+    aoi_buffered = (aoi[0] - buf, aoi[1] - buf, aoi[2] + buf, aoi[3] + buf)
 
     licences = {}
     for lid, ld in (_require(s, "licences", "sources.yaml") or {}).items():

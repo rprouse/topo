@@ -61,7 +61,7 @@ def test_compare_reports_changes(repo, tmp_path):
 
 def test_grid_ref_and_link(repo):
     cfg = config.load(repo)
-    s = cfg.sides[1]
-    assert qa.grid_ref(cfg, s.extent[0] + 10, s.extent[1] + 10).endswith("(side B)")
+    e = {s.id: s for s in cfg.sides}["E"].extent
+    assert qa.grid_ref(cfg, (e[0] + e[2]) / 2, (e[1] + e[3]) / 2).endswith("(sheet E)")
     assert qa.link("osm:way/42") == "[osm:way/42](https://www.openstreetmap.org/way/42)"
     assert qa.link("cgn:ABC") == "`cgn:ABC`"

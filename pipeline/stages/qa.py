@@ -33,9 +33,9 @@ WATCH_FIELDS = {"roads": ["class", "name", "surface", "access"],
 # --------------------------------------------------------------------------
 
 def grid_ref(cfg: Config, x: float, y: float) -> str:
-    """'640.3 E 5484.7 N (side B)': km on the map's UTM grid, plus the side."""
+    """'640.3 E 5484.7 N (sheet E)': km on the map's UTM grid, plus the first sheet showing it."""
     side = next((s.id for s in cfg.sides if s.extent[0] <= x <= s.extent[2] and s.extent[1] <= y <= s.extent[3]), None)
-    return f"{x / 1000:.1f} E {y / 1000:.1f} N" + (f" (side {side})" if side else " (off sheet)")
+    return f"{x / 1000:.1f} E {y / 1000:.1f} N" + (f" (sheet {side})" if side else " (off the map)")
 
 
 def link(source_id: str) -> str:
@@ -223,7 +223,7 @@ def run(cfg: Config) -> Path:
     add(("**Still the placeholder.** " if "PLACEHOLDER" in disc else "") + disc + "\n")
 
     add("## Outputs\n")
-    add(md_table(["Side", "Print PDF", "Digital GeoPDF", "Scale", "Proofs"],
+    add(md_table(["Sheet", "Print PDF", "Digital GeoPDF", "Scale", "Proofs"],
                  [[s["id"], f"build/print/{s['pdf']}", f"build/digital/{s['geopdf']}" if s.get("geopdf") else "",
                    f"1:{s['map_scale']:,.0f}",
                    ", ".join(f"{p['file']} ({p['pages']} pages)" for p in proofs.get("sets", []) if p["side"] == s["id"])]

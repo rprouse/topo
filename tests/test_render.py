@@ -34,10 +34,28 @@ def test_sheet_geometry_at_30000(repo):
 
 
 def test_sheet_geometry_reports_misfit(repo):
-    _edit_map(repo, lambda m: m["aoi"].update(height_m=30000))
+    _edit_map(repo, lambda m: m["sheet"]["grid"].update(face_height_m=30000))
     cfg = config.load(repo)
-    with pytest.raises(LayoutError, match="side A"):
+    with pytest.raises(LayoutError, match="sheet A"):
         sheet_geometry(cfg, cfg.sides[0])
+
+
+def test_neighbours_ignore_diagonals(repo):
+    from pipeline.layout import neighbours
+
+    cfg = config.load(repo)
+    by = {s.id: s for s in cfg.sides}
+    assert sorted(neighbours(cfg, by["E"])) == [("B", "north"), ("D", "west"), ("F", "east"), ("H", "south")]
+    assert sorted(neighbours(cfg, by["A"])) == [("B", "east"), ("D", "south")]
+
+
+def test_overview_scale(repo):
+    from pipeline.layout import overview_geometry
+
+    cfg = config.load(repo)
+    scale, g = overview_geometry(cfg)
+    assert scale == 75_000                       # 40 x 61 km on a 24 x 36 in sheet
+    assert g.map.h == pytest.approx(61000 / 75000 * 1000)
 
 
 def test_declination_matches_noaa():

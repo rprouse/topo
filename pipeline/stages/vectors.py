@@ -360,7 +360,7 @@ def spot_heights(cfg: Config, path: Path, features: list[Feature]) -> list[Featu
     ogr = _ogr()
     vcfg = cfg.map.get("vectors", {})
     radius = float(vcfg.get("spot_height_exclude_radius_m", 400))
-    cap = int(cfg.map["terrain"].get("spot_heights_max", 40))
+    cap = int(cfg.map["terrain"].get("spot_heights_max", 40)) * len(cfg.sides)   # per sheet
     peak_codes = set((vcfg.get("name_match", {}).get("peak") or {}).get("concise", ["MTN"]))
     known = [f.geom for f in features if (f.layer == "pois" and f.props.get("class") == "peak")
              or (f.layer == "names" and f.props.get("concise") in peak_codes)]

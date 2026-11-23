@@ -12,31 +12,40 @@ crs: EPSG:2955
 # Map scale denominator. 25000 is the target; 30000 must also work.
 scale: 25000
 
-# Area of interest. PLACEHOLDER extents (Rob to set final values).
-# The AOI is a rectangle in the map CRS, centred on `center` (lon, lat in
-# WGS84), `width_m` x `height_m` metres. It covers both sides of the sheet.
+# Area of interest, centred on Fernie's town centre (lon, lat in WGS84).
+# With sheet.grid below, the AOI is the union of the map faces; without it,
+# set width_m / height_m here and list the sides explicitly.
 aoi:
-  center: [-115.06, 49.50]
-  width_m: 28000
-  height_m: 21000
+  center: [-115.063, 49.504]
   # Extra margin fetched around the AOI so contours, hillshade and lines
   # don't stop abruptly at the neatline.
   buffer_m: 1000
 
-# Sheet and faces. Each side's extent is either a named part of the AOI
-# (full, west, east, north, south) or an explicit [xmin, ymin, xmax, ymax]
-# in the map CRS. Default split: west half on side A, east half on side B.
+# Sheet and faces. The map set is a grid of faces, each printed on one
+# side of a 24 x 36 in sheet, read left to right, top to bottom: A B C /
+# D E F / G H I, with Fernie in the centre face (E). Neighbouring faces
+# repeat overlap_m along their shared edge so nothing falls on a seam.
+# An overview of the whole set is printed on the tenth face (overview: true).
+# Duplex pairs, in sheet.pdf order: A|B, C|D, E|F, G|H, I|overview.
+#
+# A face is at most ~14.8 x 21.1 km at 1:25,000 on this sheet (the map frame
+# must leave room for the title band and collar).
+# (Alternative to `grid`: an explicit `sides:` list of {id, title, extent},
+# where extent is full/west/east/north/south of the AOI or [xmin, ymin,
+# xmax, ymax], with aoi.width_m / height_m set.)
 sheet:
   width_in: 24
   height_in: 36
   orientation: portrait
-  sides:
-    - id: A
-      title: Fernie West
-      extent: west
-    - id: B
-      title: Fernie East
-      extent: east
+  grid:
+    rows: 3
+    columns: 3
+    face_width_m: 14000
+    face_height_m: 21000
+    overlap_m: 1000
+    # ids: [A, B, C, D, E, F, G, H, I]     # default
+    # titles: {E: Fernie}                  # default: compass names, centre = title
+  overview: true
 
 terrain:
   # Terrain sources in order of preference. The fetch stage takes the first
@@ -50,7 +59,9 @@ terrain:
   # 2023 one) clipped to the real coverage, so LidarBC 2016 is left out: below
   # HRDEM it would only add the fans. Areas no lidar survey covers fall
   # through to the national DEM.
-  sources: [lidarbc_dem:2024, lidarbc_dem:2022, hrdem, cdem]
+  # The 2017 East Kootenay survey is treated like 2016: NRCan's mosaic carries
+  # it clipped to its real coverage.
+  sources: [lidarbc_dem:2025, lidarbc_dem:2024, lidarbc_dem:2022, hrdem, cdem]
   dem_resolution_m: 2        # working DEM grid; 300 dpi at 1:25,000 is ~2.1 m
   # Gaps smaller than this are interpolated instead of fetching another
   # source for them (lidar DEMs often have small voids on water).
@@ -72,7 +83,7 @@ terrain:
 
   # Spot-height candidates from DEM summits. The vectors stage (milestone 3)
   # drops those near named OSM/BCGNIS peaks and applies spot_heights_max.
-  spot_heights_max: 40
+  spot_heights_max: 40       # per sheet
   spot_height_radius_m: 400  # a summit must be the highest point within this
   spot_height_min_relief_m: 60
 

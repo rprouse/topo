@@ -1,6 +1,6 @@
 # Fernie Topo
 
-A reproducible pipeline that turns open data into a print-ready 1:25,000 topographic map of the Fernie, BC area.
+A reproducible pipeline that turns open data into a print-ready 1:25,000 topographic map set of the Fernie, BC area: nine map sheets in a 3 × 3 grid (A–I, with Fernie in the centre sheet E) plus an overview, printed front and back on five 24 × 36 in sheets.
 
 - [`docs/fernie-topo-pipeline-brief.md`](docs/fernie-topo-pipeline-brief.md): what the pipeline must do
 - [`docs/PROCESS.md`](docs/PROCESS.md): the human side: design, proofing, ground truthing, printing
@@ -12,7 +12,7 @@ A reproducible pipeline that turns open data into a print-ready 1:25,000 topogra
 | 1. Skeleton: Docker image, CLI, config, cache, manifest, fetch | **Done**: BC Freshwater Atlas (streams, lakes, rivers, wetlands) |
 | 2. Terrain: DEM selection, contours, hillshade | **Done**: LidarBC, then HRDEM, then CDEM; PNG preview |
 | 3. Vectors: OSM, roads, names, corrections → `map.gpkg` | **Done**: OSM (pinned snapshot), Freshwater Atlas, official names, corrections |
-| 4. Render: QGIS project, layout, print PDF | **Done**: print PDF per side with grid, collar, attribution, declination |
+| 4. Render: QGIS project, layout, print PDF | **Done**: print PDF per sheet with grid, collar, attribution, declination |
 | 5. Proofs and QA | **Done**: letter/legal proof tiles, greyscale, QA report with change list |
 | 6. Polish: GeoPDF, CMYK, double-sided layout, docs | **Done**: digital GeoPDF, CMYK findings and optional conversion, duplex sheet, workflow docs |
 
@@ -28,7 +28,7 @@ make fetch        # download sources into .cache/
 make terrain      # DEM composite, contours, hillshade, spot heights, preview
 make vectors      # normalise all vector data into build/map.gpkg
 make corrections-init  # create an empty authored/corrections.gpkg
-make render       # print PDFs and PNG previews per side, through qgis/fernie.qgs
+make render       # print PDFs and PNG previews per sheet, through qgis/fernie.qgs
 make project-init # generate the starting QGIS project (once; it is hand-edited after)
 make proofs       # 100%-scale proof tiles for the office printer, plus greyscale
 make qa           # build/qa-report.md: the ground-truthing to-do list
@@ -47,7 +47,7 @@ Without make, the equivalent is `docker build -t fernie-topo:dev .` followed by 
 
 ## How it works
 
-- **Config** (`config/map.yaml`, `config/sources.yaml`) holds everything about the map: CRS, scale, AOI, sheet sides, contour interval, edition, and every data source with its licence and attribution. Change the config, not the code.
+- **Config** (`config/map.yaml`, `config/sources.yaml`) holds everything about the map: CRS, scale, AOI centre, the sheet grid, contour interval, edition, and every data source with its licence and attribution. Change the config, not the code.
 - **Environment**: the `Dockerfile` pins the official QGIS 3.44 LTR image by digest (QGIS 3.44.15, GDAL 3.8.4, PROJ 9.4, Python 3.12). Install QGIS desktop 3.44.x for styling and labels so they render the same.
 - **Cache**: each source is fetched into `.cache/sources/<id>/<request-key>/`. The key hashes everything that determines the request (endpoint, layer, bbox, CRS), so a changed AOI gets a fresh download instead of stale data. Each entry has a `record.json` with URLs, retrieval time and sha256 checksums. Deleting `.cache/` is always safe.
 - **State and manifest**: each stage writes `build/state/<stage>.json` with an input hash, which lets later stages skip unchanged work. `make manifest` assembles these into `build/manifest.json`: sources, URLs, timestamps, checksums, tool versions, git commit, edition and attribution.
@@ -106,23 +106,28 @@ If a stranger mapping the area would want the fix, make it in OSM with JOSM inst
 
 ## Render
 
-`make render` opens `qgis/fernie.qgs` headless and writes, per side of the sheet:
+`make render` opens `qgis/fernie.qgs` headless and writes, for each map sheet A–I:
 - `build/print/side-A.pdf`, the print PDF at exactly the map scale (RGB, 300 dpi lossless raster, text as text);
-- `build/print/sheet.pdf`, all sides as consecutive pages for duplex printing;
 - `build/digital/side-A.pdf`, a GeoPDF for map apps such as Avenza;
-- `side-A.png`, a preview;
+- `side-A.png`, a preview.
+
+It also writes:
+- `build/print/overview.pdf`, the tenth face: the whole area at 1:75,000 with the nine sheets outlined and lettered;
+- `build/print/sheet.pdf`, all ten faces in order for duplex printing. Pages pair front/back as A|B, C|D, E|F, G|H and I|overview;
 - `build/print/render-project.qgs`, the project with the generated layouts, to inspect in QGIS desktop.
+
+**The sheet grid** is `sheet.grid` in `map.yaml`: 3 × 3 faces of 14 × 21 km, centred on Fernie (`aoi.center`), with neighbouring faces overlapping by 1 km so nothing falls on a seam. Faces are lettered left to right, top to bottom, and titled by direction ("Fernie North", "Fernie Southwest", and just "Fernie" for the centre sheet). Override titles with `sheet.grid.titles`.
 
 What to send the printer, and why the print files are RGB rather than CMYK, is in [`docs/print.md`](docs/print.md).
 
-The **print layout is generated** from `map.yaml`. The page is the sheet size; the map frame is each side's extent at the map scale, with a title band above and a collar below; the legend is a box in one corner of the map. Changing the scale (1:30,000 works) or a side's extent needs no code changes; if a side won't fit the sheet, the render stops and says by how much. Collar text is generated, never hand-edited:
+The **print layout is generated** from `map.yaml`. The page is the sheet size; the map frame is each sheet's extent at the map scale, with a title band above and a collar below; the legend is a box in one corner of the map. Changing the scale (1:30,000 works) or the grid needs no code changes; if a sheet won't fit the paper, the render stops and says by how much. Collar text is generated, never hand-edited:
 - **attribution**, from `config/sources.yaml`;
 - **declination**, computed from the high-resolution World Magnetic Model (WMMHR-2025, matching NOAA's calculator) for `collar.declination_date`;
 - **grid note**;
 - **edition and OSM date**;
 - **disclaimer**, from `collar.disclaimer` (still a placeholder).
 
-With more than one side, each side also gets a **sheet index** (a small diagram of the sides, with this one shaded) and a **"Continues on side B"** note on the edges it shares with another side.
+Each sheet also gets a **sheet index** (a small diagram of the grid, with this sheet shaded) and a **"Continues on sheet B"** note on each edge it shares with another sheet: outside the frame on the left and right, in a small box just inside it at the top and bottom.
 
 To change the collar design, edit `pipeline/layout.py`.
 
@@ -143,8 +148,8 @@ The **QGIS project** holds the layers, their styles and labels. It was generated
 After a build, look at these, roughly in this order:
 
 1. **`build/qa-report.md`:** the to-do list. Open it in VS Code's Markdown preview, so the OSM links are clickable.
-2. **The print PDFs:** `build/print/side-A.pdf`, `side-B.pdf`, or `sheet.pdf` with both. View at 100% zoom to judge true size.
-3. **The print layout in QGIS:** open `build/print/render-project.qgs`, then Project → Layout Manager → **Side A** or **Side B**. This is a throwaway copy that `make render` regenerates: look, but don't edit or save it. Collar changes go in `pipeline/layout.py` or `map.yaml`.
+2. **The print PDFs:** `build/print/side-E.pdf` (the centre sheet) and its neighbours, `overview.pdf`, or `sheet.pdf` with everything. View at 100% zoom to judge true size.
+3. **The print layout in QGIS:** open `build/print/render-project.qgs`, then Project → Layout Manager → **Side A** … **Side I** or **Overview**. This is a throwaway copy that `make render` regenerates: look, but don't edit or save it. Collar changes go in `pipeline/layout.py` or `map.yaml`.
 4. **The map itself:** open `qgis/fernie.qgs`. Toggle layers in the Layers panel (top of the list draws on top). Use the **Identify** tool ("i" icon) to read any feature's `source_id`, `class` and `name`; that `source_id` is what a correction refers to.
 5. **`build/terrain/coverage.png`:** which elevation source supplied each part of the map.
 6. **Proof tiles:** `build/proofs/side-A-letter.pdf` and the `-grey` version. Print at **100% / Actual size**.
@@ -177,9 +182,9 @@ Then save the project, run `make render` (and `make proofs` for paper), update `
 
 ## Proofs
 
-`make proofs` cuts each side's print PDF into pages for an office printer, at 100% scale. The output goes to `build/proofs/`:
+`make proofs` cuts each sheet's print PDF (and the overview) into pages for an office printer, at 100% scale. The output goes to `build/proofs/`:
 - `side-A-letter.pdf` and `side-A-legal.pdf`: an index page showing the tile grid over the sheet, then one page per tile, with crop marks, overlap ticks and a label.
-- `-grey` versions of each, plus `side-A-grey.pdf`, the whole side in greyscale (made with Ghostscript). Use these to check that the map still reads without colour.
+- `-grey` versions of each, plus `side-A-grey.pdf`, the whole sheet in greyscale (made with Ghostscript). Use these to check that the map still reads without colour.
 
 Paper sizes, margin and overlap are set under `proofs:` in `map.yaml`. **Print at 100% / Actual size**, never fit-to-page. Tiles stay vector, so text is sharp on a laser printer.
 
@@ -189,7 +194,7 @@ Paper sizes, margin and overlap are set under `proofs:` in `map.yaml`. **Print a
 
 - **To do:** counts of everything below.
 - **Terrain:** which source covers how much of the area, and where low-resolution fill was used.
-- **Changes since the baseline:** roads, trails, points of interest and places that were added, removed, reclassified, renamed, moved or reshaped since the previous build. Each row has a grid reference (km on the printed grid, and which side) and a link to the OSM feature. This is the ground-truthing list. The baseline defaults to the previous vectors build (`build/map.previous.gpkg`). For a new edition, point `qa.baseline` at the last release's archived `map.gpkg` (see "Making a new edition" in [`docs/PROCESS.md`](docs/PROCESS.md)).
+- **Changes since the baseline:** roads, trails, points of interest and places that were added, removed, reclassified, renamed, moved or reshaped since the previous build. Each row has a grid reference (km on the printed grid, and which sheet) and a link to the OSM feature. This is the ground-truthing list. The baseline defaults to the previous vectors build (`build/map.previous.gpkg`). For a new edition, point `qa.baseline` at the last release's archived `map.gpkg` (see "Making a new edition" in [`docs/PROCESS.md`](docs/PROCESS.md)).
 - **Corrections:** stale edits (their feature has gone from OSM) and edits with errors.
 - **Names:** differences between OSM and official names, to settle with corrections.
 - **Collar:** the attribution, declination and disclaimer as generated, to check against the printed collar.

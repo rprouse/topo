@@ -20,7 +20,7 @@ def _cfg(tmp_path: Path, grid: Grid, **terrain):
     t = {"contour_interval_m": 20, "index_every": 5, "contour_simplify_m": 0.5,
          "contour_smooth_iterations": 2, "contour_min_length_m": 0, "fill_max_distance_m": 10,
          "spot_heights_max": 10, "spot_height_radius_m": 40, "spot_height_min_relief_m": 20, **terrain}
-    return SimpleNamespace(cache_dir=tmp_path, crs=CRS, aoi=grid.bbox, map={"terrain": t})
+    return SimpleNamespace(cache_dir=tmp_path, crs=CRS, aoi=grid.bbox, map={"terrain": t}, sides=[None])
 
 
 # ---- grid -----------------------------------------------------------------

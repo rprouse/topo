@@ -48,7 +48,8 @@ class SheetGeometry:
     collar: Rect
 
 
-def sheet_geometry(cfg: Config, side: Side) -> SheetGeometry:
+def sheet_geometry(cfg: Config, side: Side, scale: int | None = None) -> SheetGeometry:
+    scale = scale or cfg.scale
     sheet = cfg.map["sheet"]
     lay = cfg.map.get("layout", {})
     pw, ph = sheet["width_in"] * MM_PER_IN, sheet["height_in"] * MM_PER_IN
@@ -61,13 +62,13 @@ def sheet_geometry(cfg: Config, side: Side) -> SheetGeometry:
     collar_h = float(lay.get("collar_band_mm", 40))
 
     x0, y0, x1, y1 = side.extent
-    mw = (x1 - x0) / cfg.scale * 1000.0
-    mh = (y1 - y0) / cfg.scale * 1000.0
+    mw = (x1 - x0) / scale * 1000.0
+    mh = (y1 - y0) / scale * 1000.0
     avail_w = pw - 2 * margin
     avail_h = ph - 2 * margin - title_h - collar_h
     if mw > avail_w + 1e-6 or mh > avail_h + 1e-6:
         raise LayoutError(
-            f"side {side.id}: {(x1 - x0) / 1000:.1f} x {(y1 - y0) / 1000:.1f} km at 1:{cfg.scale:,} needs a "
+            f"sheet {side.id}: {(x1 - x0) / 1000:.1f} x {(y1 - y0) / 1000:.1f} km at 1:{scale:,} needs a "
             f"{mw:.0f} x {mh:.0f} mm map frame, but the sheet leaves {avail_w:.0f} x {avail_h:.0f} mm. "
             f"Shrink the side's extent, change the scale, or reduce the layout bands in map.yaml.")
     total_h = title_h + mh + collar_h
@@ -81,11 +82,55 @@ def sheet_geometry(cfg: Config, side: Side) -> SheetGeometry:
     )
 
 
+def neighbours(cfg: Config, side: Side) -> list[tuple[str, str]]:
+    """Faces sharing an edge with `side`: [(id, 'north'|'south'|'east'|'west')].
+
+    A shared edge must run along at least half of the shorter face, so a
+    diagonal neighbour, which only overlaps by the grid's overlap strip,
+    doesn't count."""
+    sx0, sy0, sx1, sy1 = side.extent
+    out = []
+    for o in cfg.sides:
+        if o.id == side.id:
+            continue
+        ox0, oy0, ox1, oy1 = o.extent
+        run_y = min(sy1, oy1) - max(sy0, oy0)
+        run_x = min(sx1, ox1) - max(sx0, ox0)
+        long_y = run_y >= 0.5 * min(sy1 - sy0, oy1 - oy0)
+        long_x = run_x >= 0.5 * min(sx1 - sx0, ox1 - ox0)
+        if long_y and ox1 > sx1 and ox0 <= sx1 + 1:
+            out.append((o.id, "east"))
+        elif long_y and ox0 < sx0 and ox1 >= sx0 - 1:
+            out.append((o.id, "west"))
+        elif long_x and oy1 > sy1 and oy0 <= sy1 + 1:
+            out.append((o.id, "north"))
+        elif long_x and oy0 < sy0 and oy1 >= sy0 - 1:
+            out.append((o.id, "south"))
+    return out
+
+
+OVERVIEW_SCALES = (50_000, 60_000, 75_000, 100_000, 125_000, 150_000, 200_000, 250_000, 500_000)
+
+
+def overview_geometry(cfg: Config) -> tuple[int, SheetGeometry]:
+    """The overview face: the whole AOI at the largest round scale that fits
+    the same sheet and bands."""
+    x0, y0, x1, y1 = cfg.aoi
+    probe = Side("overview", "", cfg.aoi)
+    for scale in OVERVIEW_SCALES:
+        try:
+            return scale, sheet_geometry(cfg, probe, scale=scale)
+        except LayoutError:
+            continue
+    raise LayoutError(f"the AOI ({(x1 - x0) / 1000:.0f} x {(y1 - y0) / 1000:.0f} km) doesn't fit the sheet "
+                      f"even at 1:{OVERVIEW_SCALES[-1]:,}")
+
+
 # --------------------------------------------------------------------------
 # QGIS layout (only called inside the QGIS process)
 # --------------------------------------------------------------------------
 
-def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict):
+def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict, *, overview=None):
     """Create the print layout for one side. `texts` holds generated collar
     text (attribution, disclaimer, edition, declination); `north` the
     declination/convergence values for the diagram."""
@@ -97,7 +142,11 @@ def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict):
 
     from . import style as S
 
-    g = sheet_geometry(cfg, side)
+    # `overview` = {"scale": int, "layers": [...], "faces": layer, "grid_m": float}
+    # draws the whole set at a small scale with the faces outlined, and
+    # skips the sheet index and neighbour notes.
+    scale = overview["scale"] if overview else cfg.scale
+    g = sheet_geometry(cfg, side, scale=scale)
     mm = qc.QgsUnitTypes.LayoutMillimeters
 
     layout = qc.QgsPrintLayout(project)
@@ -135,12 +184,15 @@ def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict):
     m.setCrs(qc.QgsCoordinateReferenceSystem(cfg.crs))
     x0, y0, x1, y1 = side.extent
     m.setExtent(qc.QgsRectangle(x0, y0, x1, y1))
-    m.setScale(cfg.scale)
+    m.setScale(scale)
+    if overview:
+        m.setLayers(overview["layers"])
+        m.setKeepLayerSet(True)
     m.setFrameEnabled(True)
     m.setFrameStrokeWidth(qc.QgsLayoutMeasurement(0.3, mm))
     m.setBackgroundColor(QColor("white"))
 
-    spacing = float(cfg.map.get("grid", {}).get("spacing_m", 1000))
+    spacing = float(overview["grid_m"]) if overview else float(cfg.map.get("grid", {}).get("spacing_m", 1000))
     grid = qc.QgsLayoutItemMapGrid("UTM grid", m)
     grid.setUnits(qc.QgsLayoutItemMapGrid.MapUnit)
     grid.setIntervalX(spacing)
@@ -187,7 +239,10 @@ def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict):
     sb.setUnits(qc.Qgis.DistanceUnit.Kilometers)   # QGIS converts from map units (m) itself
     sb.setUnitLabel("km")
     sb.setSegmentSizeMode(qc.Qgis.ScaleBarSegmentSizeMode.Fixed)
-    sb.setUnitsPerSegment(1)
+    # Segment length: the largest round distance that is at most 45 mm on paper
+    # (1 km at 1:25,000, 2 km at 1:75,000).
+    seg_km = max([v for v in (0.5, 1, 2, 5, 10, 20) if v * 1e6 / scale <= 45] or [0.5])
+    sb.setUnitsPerSegment(seg_km)
     sb.setNumberOfSegments(3)
     sb.setNumberOfSegmentsLeft(1)
     sb.setHeight(1.5)
@@ -233,7 +288,7 @@ def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict):
     text("edition", texts["edition"], Rect(xs[3], top, c.w * cols[3], h), S.MIN_TEXT_PT, halign=Qt.AlignRight)
 
     # ---- sheet index: where this side sits on the whole sheet
-    if len(cfg.sides) > 1:
+    if len(cfg.sides) > 1 and not overview:
         ax0, ay0, ax1, ay1 = (min(s.extent[0] for s in cfg.sides), min(s.extent[1] for s in cfg.sides),
                               max(s.extent[2] for s in cfg.sides), max(s.extent[3] for s in cfg.sides))
         box_h = min(16.0, h - 12)
@@ -254,31 +309,32 @@ def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict):
                  halign=Qt.AlignHCenter, valign=Qt.AlignVCenter)
         text("index_note", "Sheet index", Rect(bx - 22, by + box_h - 3, 21, 3), S.MIN_TEXT_PT, halign=Qt.AlignRight)
 
-    # ---- "continues on side X" along edges shared with another side
-    sx0, sy0, sx1, sy1 = side.extent
-    tol = 1.0
-    for other in cfg.sides:
-        if other.id == side.id:
-            continue
-        ox0, oy0, ox1, oy1 = other.extent
-        overlap_y = min(sy1, oy1) - max(sy0, oy0) > 0
-        overlap_x = min(sx1, ox1) - max(sx0, ox0) > 0
-        note = f"Continues on side {other.id}"
+    # ---- "continues on sheet X" along edges shared with another face
+    for other_id, direction in ([] if overview else neighbours(cfg, side)):
+        note = f"Continues on sheet {other_id}"
         gap = 9.0                                            # outside the grid annotations
-        if overlap_y and ox0 <= sx1 + tol and ox1 > sx1:     # neighbour to the east
-            lab = text(f"continues_{other.id}", note + " →", Rect(0, 0, 60, 4), 8, bold=True, halign=Qt.AlignHCenter)
+        if direction == "east":
+            lab = text(f"continues_{other_id}", note + " →", Rect(0, 0, 60, 4), 8, bold=True, halign=Qt.AlignHCenter)
             lab.setItemRotation(90)
             lab.attemptMove(qc.QgsLayoutPoint(g.map.right + gap, g.map.y + g.map.h / 2 - 30, mm))
-        elif overlap_y and ox1 >= sx0 - tol and ox0 < sx0:   # neighbour to the west
-            lab = text(f"continues_{other.id}", "← " + note, Rect(0, 0, 60, 4), 8, bold=True, halign=Qt.AlignHCenter)
+        elif direction == "west":
+            lab = text(f"continues_{other_id}", "← " + note, Rect(0, 0, 60, 4), 8, bold=True, halign=Qt.AlignHCenter)
             lab.setItemRotation(-90)
             lab.attemptMove(qc.QgsLayoutPoint(g.map.x - gap - 4, g.map.y + g.map.h / 2 + 30, mm))
-        elif overlap_x and oy0 <= sy1 + tol and oy1 > sy1:   # neighbour to the north
-            text(f"continues_{other.id}", "↑ " + note, Rect(g.map.x + g.map.w / 2 - 30, g.map.y - gap - 4, 60, 4), 8,
-                 bold=True, halign=Qt.AlignHCenter)
-        elif overlap_x and oy1 >= sy0 - tol and oy0 < sy0:   # neighbour to the south
-            text(f"continues_{other.id}", note + " ↓", Rect(g.map.x + g.map.w / 2 - 30, g.map.bottom + gap, 60, 4), 8,
-                 bold=True, halign=Qt.AlignHCenter)
+        else:
+            # Top and bottom: a small box just inside the frame (the title band
+            # and collar leave no room outside it).
+            y = g.map.y + 2.5 if direction == "north" else g.map.bottom - 2.5 - 5
+            label_text = ("↑ " + note) if direction == "north" else (note + " ↓")
+            lab = text(f"continues_{other_id}", label_text, Rect(g.map.x + g.map.w / 2 - 25, y, 50, 5), 8,
+                       bold=True, halign=Qt.AlignHCenter, valign=Qt.AlignVCenter)
+            lab.setBackgroundEnabled(True)
+            lab.setBackgroundColor(QColor(255, 255, 255, 235))
+            lab.setFrameEnabled(True)
+            lab.setFrameStrokeWidth(qc.QgsLayoutMeasurement(0.2, mm))
+
+    if overview:
+        return layout                                   # the faces carry the legend
 
     # ---- legend box over a corner of the map
     leg = qc.QgsLayoutItemLegend(layout)

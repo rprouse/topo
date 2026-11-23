@@ -33,10 +33,11 @@ def run(cfg: Config, force: bool = False) -> dict:
     margin, overlap = float(pcfg.get("margin_mm", 8)), float(pcfg.get("overlap_mm", 12))
     grey = bool(pcfg.get("greyscale", True))
     src_dir, out = cfg.build_dir / "print", cfg.build_dir / "proofs"
-    sides = [s["id"] for s in render["result"]["sides"]]
+    # (id, file stem): side-A ... side-I, and overview when there is one.
+    sides = [(s["id"], s["pdf"][:-4]) for s in render["result"]["sides"]]
     h = stable_hash({"render": render["inputs_hash"], "proofs": pcfg, "v": 1,
                      "code": sha256_file(cfg.root / "pipeline" / "pdftile.py")})
-    outputs = [out / f"side-{s}-{p}.pdf" for s in sides for p in papers]
+    outputs = [out / f"{stem}-{p}.pdf" for _, stem in sides for p in papers]
     if not force and state.is_current(cfg.build_dir, "proofs", h, outputs):
         log.info("proofs: up to date")
         return state.read(cfg.build_dir, "proofs")
@@ -44,10 +45,10 @@ def run(cfg: Config, force: bool = False) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     title = cfg.map.get("title", "Map")
     sets = []
-    for sid in sides:
-        variants = [("", str(src_dir / f"side-{sid}.pdf"))]
+    for sid, stem in sides:
+        variants = [("", str(src_dir / f"{stem}.pdf"))]
         if grey:
-            gpdf = out / f"side-{sid}-grey.pdf"
+            gpdf = out / f"{stem}-grey.pdf"
             log.info("proofs: side %s greyscale", sid)
             greyscale(variants[0][1], str(gpdf))
             variants.append(("-grey", str(gpdf)))
@@ -57,9 +58,10 @@ def run(cfg: Config, force: bool = False) -> dict:
 
                 box = PdfReader(src).pages[0].mediabox
                 tp = plan(float(box.width), float(box.height), paper, margin, overlap)
-                dst = out / f"side-{sid}-{paper}{suffix}.pdf"
+                dst = out / f"{stem}-{paper}{suffix}.pdf"
                 n = write_tiles(src, str(dst), tp,
-                                f"{title} {cfg.edition}, side {sid}{' (greyscale)' if suffix else ''}")
+                                f"{title} {cfg.edition}, " + ("overview" if sid == "overview" else f"sheet {sid}")
+                                + (" (greyscale)" if suffix else ""))
                 sets.append({"side": sid, "paper": paper, "greyscale": bool(suffix), "file": dst.name,
                              "rows": tp.rows, "cols": tp.cols, "pages": n})
                 log.info("proofs: %s: %d x %d tiles (+ index)", dst.name, tp.rows, tp.cols)

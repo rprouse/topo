@@ -248,7 +248,7 @@ def spot_heights(cfg: Config, grid: Grid, dem_path: Path, smooth_path: Path, out
     t = cfg.map["terrain"]
     radius = float(t.get("spot_height_radius_m", 400))
     min_relief = float(t.get("spot_height_min_relief_m", 50))
-    cap = int(t.get("spot_heights_max", 40)) * 3   # vectors stage filters down to the cap
+    cap = int(t.get("spot_heights_max", 40)) * len(cfg.sides) * 3   # vectors stage filters down to the cap
 
     k = max(1, round(10 / grid.res))                 # detect on a ~10 m grid
     sm = read_raster(smooth_path)
