@@ -110,7 +110,26 @@ layout:
   collar_band_mm: 40     # below the map frame
   legend_corner: bottom_left
   pdf_dpi: 300           # raster resolution (hillshade) in the print PDF
+  lossless_images: true  # QGIS otherwise embeds rasters as JPEG
   preview_dpi: 50        # PNG previews
+
+# Print deliverables. QGIS 3.44 (Qt5) cannot write CMYK PDFs; the print PDFs
+# are RGB. Most digital printers convert RGB themselves with their own
+# profile and black handling: send them the RGB PDF unless they ask for CMYK.
+# cmyk: true adds side-<id>-cmyk.pdf, converted by Ghostscript with
+# icc_profile (the printer's output profile; null = Ghostscript's generic
+# default_cmyk.icc). Caveat: black text and lines become 4-colour "rich
+# black" in that conversion. See docs/print.md.
+print:
+  cmyk: false
+  icc_profile: null
+
+# Digital edition: georeferenced PDF (GeoPDF) per side, for apps such as
+# Avenza Maps. Georeferenced to the map frame; lighter than the print PDF.
+digital:
+  geopdf: true
+  dpi: 200
+  include_features: false   # embed the map features as queryable layers (+25% size)
 
 # Proof tiles for an office printer: each side at 100% scale, cut into
 # letter / legal pages with overlap and crop marks, plus an index page.

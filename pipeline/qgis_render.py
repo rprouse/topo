@@ -64,9 +64,28 @@ def main() -> None:
         ps.exportMetadata = True
         ps.simplifyGeometries = False
         ps.textRenderFormat = qc.Qgis.TextRenderFormat.AlwaysText
+        if lay.get("lossless_images", True):
+            ps.flags = layout.renderContext().flags() | qc.QgsLayoutRenderContext.FlagLosslessImageRendering
         res = exporter.exportToPdf(str(pdf), ps)
         if res != qc.QgsLayoutExporter.Success:
             raise SystemExit(f"PDF export failed for side {side.id}: {exporter.errorMessage()}")
+
+        # Digital edition: GeoPDF georeferenced to the map frame, lighter raster.
+        dig = cfg.map.get("digital", {})
+        geopdf = None
+        if dig.get("geopdf", True):
+            geopdf = Path(job["digital_dir"]) / f"side-{side.id}.pdf"
+            geopdf.parent.mkdir(parents=True, exist_ok=True)
+            gs_ = qc.QgsLayoutExporter.PdfExportSettings()
+            gs_.dpi = float(dig.get("dpi", 200))
+            gs_.writeGeoPdf = True
+            gs_.includeGeoPdfFeatures = bool(dig.get("include_features", False))
+            gs_.appendGeoreference = True
+            gs_.exportMetadata = True
+            gs_.textRenderFormat = qc.Qgis.TextRenderFormat.AlwaysText
+            res = exporter.exportToPdf(str(geopdf), gs_)
+            if res != qc.QgsLayoutExporter.Success:
+                raise SystemExit(f"GeoPDF export failed for side {side.id}: {exporter.errorMessage()}")
 
         png = out / f"side-{side.id}.png"
         # Preview: render the page straight to an image (exportToImage would try
@@ -77,7 +96,7 @@ def main() -> None:
 
         m = layout.itemById("map")
         results["sides"].append({
-            "id": side.id, "pdf": pdf.name, "png": png.name,
+            "id": side.id, "pdf": pdf.name, "png": png.name, "geopdf": geopdf.name if geopdf else None,
             "map_scale": round(m.scale(), 3), "extent": list(side.extent),
             "seconds": round(time.monotonic() - t0, 1),
         })

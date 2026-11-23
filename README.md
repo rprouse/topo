@@ -14,7 +14,7 @@ A reproducible pipeline that turns open data into a print-ready 1:25,000 topogra
 | 3. Vectors: OSM, roads, names, corrections → `map.gpkg` | **Done**: OSM (pinned snapshot), Freshwater Atlas, official names, corrections |
 | 4. Render: QGIS project, layout, print PDF | **Done**: print PDF per side with grid, collar, attribution, declination |
 | 5. Proofs and QA | **Done**: letter/legal proof tiles, greyscale, QA report with change list |
-| 6. Polish: GeoPDF, CMYK, double-sided layout, docs | Not started |
+| 6. Polish: GeoPDF, CMYK, double-sided layout, docs | **Done**: digital GeoPDF, CMYK findings and optional conversion, duplex sheet, workflow docs |
 
 ## Requirements
 
@@ -107,9 +107,13 @@ If a stranger mapping the area would want the fix, make it in OSM with JOSM inst
 ## Render
 
 `make render` opens `qgis/fernie.qgs` headless and writes, per side of the sheet:
-- `build/print/side-A.pdf`, a print PDF at exactly the map scale (300 dpi raster, text as text, georeferenced);
+- `build/print/side-A.pdf`, the print PDF at exactly the map scale (RGB, 300 dpi lossless raster, text as text);
+- `build/print/sheet.pdf`, all sides as consecutive pages for duplex printing;
+- `build/digital/side-A.pdf`, a GeoPDF for map apps such as Avenza;
 - `side-A.png`, a preview;
 - `build/print/render-project.qgs`, the project with the generated layouts, to inspect in QGIS desktop.
+
+What to send the printer, and why the print files are RGB rather than CMYK, is in [`docs/print.md`](docs/print.md).
 
 The **print layout is generated** from `map.yaml`. The page is the sheet size; the map frame is each side's extent at the map scale, with a title band above and a collar below; the legend is a box in one corner of the map. Changing the scale (1:30,000 works) or a side's extent needs no code changes; if a side won't fit the sheet, the render stops and says by how much. Collar text is generated, never hand-edited:
 - **attribution**, from `config/sources.yaml`;
@@ -117,6 +121,8 @@ The **print layout is generated** from `map.yaml`. The page is the sheet size; t
 - **grid note**;
 - **edition and OSM date**;
 - **disclaimer**, from `collar.disclaimer` (still a placeholder).
+
+With more than one side, each side also gets a **sheet index** (a small diagram of the sides, with this one shaded) and a **"Continues on side B"** note on the edges it shares with another side.
 
 To change the collar design, edit `pipeline/layout.py`.
 
@@ -150,6 +156,53 @@ Paper sizes, margin and overlap are set under `proofs:` in `map.yaml`. **Print a
 - **Corrections:** stale edits (their feature has gone from OSM) and edits with errors.
 - **Names:** differences between OSM and official names, to settle with corrections.
 - **Collar:** the attribution, declination and disclaimer as generated, to check against the printed collar.
+
+## Manual workflows
+
+The pipeline handles data and rendering; these are the hand-made parts. Each fix belongs in exactly one place (see "How the pieces fit" in [`docs/PROCESS.md`](docs/PROCESS.md)):
+
+| What's wrong | Fix it in |
+|---|---|
+| A trail or road is missing, wrong or misclassified in the real world | OpenStreetMap, with JOSM |
+| Something specific to this map (a local name, a closure, trail grading) | `authored/corrections.gpkg` |
+| It looks wrong (colour, weight, symbol) | Styles in `qgis/fernie.qgs` |
+| A label is badly placed | Label positions in QGIS (`qgis/fernie.qgd`) |
+
+### Labels and styles in QGIS
+
+See [Editing styles and labels in QGIS](#editing-styles-and-labels-in-qgis) above. In short:
+1. Run a build.
+2. Open `qgis/fernie.qgs` in QGIS 3.44 with Noto Sans installed.
+3. Move, pin or hide labels with the label toolbar. Work through the grid squares, densest areas first.
+4. Save, run `make render`, and commit `qgis/`.
+
+### Corrections in QGIS
+
+1. Open `authored/corrections.gpkg` in QGIS, alongside `build/map.gpkg` (or the project).
+2. **To change an existing feature:** use the Identify tool to read its `source_id` (e.g. `osm:way/123456`). Add a row to the `edits` table with that `source_id`, an `action` (`set`, `hide`, `delete` or `close`), and for `set` the `field` and `value`. Fill in `note` and `author` for future-you.
+3. **To add a feature:** digitize it into `added_points`, `added_lines` or `added_polygons`. Give it an `id`, a `target_layer` (`trails`, `pois`, …), a `class` and a `name`; other fields go in `attributes` as JSON, e.g. `{"difficulty": "moderate"}`.
+4. Run `make vectors render` and check `build/vectors-report.json` or `make qa` for errors.
+5. Commit `authored/corrections.gpkg`.
+
+### Corrections in the field with QField
+
+1. Copy `authored/corrections.gpkg` and `build/map.gpkg` to the phone, with a background such as `build/terrain/hillshade.tif`. QFieldSync, the QGIS plugin, can package them as a project, or open the GeoPackages directly in QField.
+2. In the field, add points or lines to the `added_*` layers, or note a `source_id` and what's wrong in a point's `note` field. A photo attached to the point helps.
+3. Back home, copy `corrections.gpkg` back over `authored/corrections.gpkg`, check the edits in QGIS, turn notes into proper `edits` rows, then rebuild and commit.
+
+Don't edit `build/map.gpkg` itself: it's regenerated on every build.
+
+### OpenStreetMap edits with JOSM
+
+Real-world errors (a missing junction, a decommissioned trail, a wrong road class) should be fixed in OSM, where they help everyone and flow into the next edition.
+
+1. Read OSM's guidance on editing and changeset comments before the first upload. Local mappers notice careless edits.
+2. In JOSM, download the area. The QA report links each changed feature straight to its OSM page.
+3. Trace only from imagery OSM permits (JOSM's imagery menu lists them), and from your own GPX tracks. Never trace from Google, Esri or Bing, or copy from Trailforks.
+4. Upload with a clear changeset comment, e.g. "Fernie: add Lazy Bear trail from GPS survey".
+5. For the next edition, move `osm.snapshot` in `map.yaml` to a date after your edits and rebuild.
+
+When an OSM fix makes a correction redundant (or deletes the feature it pointed at), the QA report lists it as stale; delete it from `corrections.gpkg`.
 
 ## Data sources and licences
 

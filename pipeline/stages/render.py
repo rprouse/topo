@@ -22,7 +22,32 @@ from ..layout import sheet_geometry
 
 log = logging.getLogger(__name__)
 
-STEP_VERSION = 1
+STEP_VERSION = 2
+
+
+def combine_sheet(pdfs: list[str], out: str) -> None:
+    """All sides as consecutive pages of one PDF, for duplex printing."""
+    from pypdf import PdfWriter
+
+    w = PdfWriter()
+    for p in pdfs:
+        w.append(p)
+    with open(out, "wb") as f:
+        w.write(f)
+
+
+def to_cmyk(src: str, dst: str, icc: str | None) -> None:
+    """RGB -> CMYK with Ghostscript. Images stay lossless (no re-encoding to
+    JPEG). Black text and lines become 4-colour rich black: see docs/print.md."""
+    cmd = ["gs", "-q", "-dSAFER", "-dBATCH", "-dNOPAUSE", "-sDEVICE=pdfwrite",
+           "-sColorConversionStrategy=CMYK", "-dProcessColorModel=/DeviceCMYK",
+           "-dAutoFilterColorImages=false", "-sColorImageFilter=FlateEncode",
+           "-dAutoFilterGrayImages=false", "-sGrayImageFilter=FlateEncode",
+           "-dDownsampleColorImages=false", "-dDownsampleGrayImages=false",
+           "-dAutoRotatePages=/None", "-dCompatibilityLevel=1.6"]
+    if icc:
+        cmd.append(f"-sOutputICCProfile={icc}")
+    subprocess.run(cmd + [f"-sOutputFile={dst}", src], check=True)
 
 
 def collar_texts(cfg: Config, used_sources: list[str], north: declination.NorthArrows, osm_snapshot: str | None) -> dict:
@@ -75,7 +100,7 @@ def run(cfg: Config, sides: list[str] | None = None, force: bool = False) -> dic
         "vectors": (state.read(cfg.build_dir, "vectors") or {}).get("inputs_hash"),
         "texts": {**texts, "edition": texts["edition"].rsplit("Built", 1)[0]},
         "side_texts": side_texts,
-        "config": {k: cfg.map.get(k) for k in ("sheet", "layout", "grid", "scale", "crs")},
+        "config": {k: cfg.map.get(k) for k in ("sheet", "layout", "grid", "scale", "crs", "print", "digital")},
         "sides": [[s.id, list(s.extent)] for s in cfg.sides],
         "code": [sha256_file(cfg.root / "pipeline" / f) for f in ("layout.py", "qgis_render.py")],
     }
@@ -90,6 +115,7 @@ def run(cfg: Config, sides: list[str] | None = None, force: bool = False) -> dic
     out.mkdir(parents=True, exist_ok=True)
     job = {
         "root": str(cfg.root), "project": str(project), "out_dir": str(out),
+        "digital_dir": str(cfg.build_dir / "digital"),
         "result": str(out / "render-result.json"), "sides": sides or [],
         "texts": texts, "side_texts": side_texts, "north": north.as_dict(),
     }
@@ -102,6 +128,18 @@ def run(cfg: Config, sides: list[str] | None = None, force: bool = False) -> dic
     for s in result["sides"]:
         if abs(s["map_scale"] - cfg.scale) > 0.5:
             raise SystemExit(f"side {s['id']} rendered at 1:{s['map_scale']}, not 1:{cfg.scale}")
+    if not sides and len(cfg.sides) > 1:
+        combine_sheet([str(out / f"side-{s.id}.pdf") for s in cfg.sides], str(out / "sheet.pdf"))
+        result["sheet"] = "sheet.pdf"
+        log.info("render: sheet.pdf (all sides, for duplex printing)")
+    pcfg = cfg.map.get("print", {})
+    if pcfg.get("cmyk"):
+        icc = pcfg.get("icc_profile")
+        icc = str(cfg.root / icc) if icc else None
+        for s in result["sides"]:
+            log.info("render: side %s CMYK%s", s["id"], f" ({icc})" if icc else " (Ghostscript default profile)")
+            to_cmyk(str(out / s["pdf"]), str(out / f"side-{s['id']}-cmyk.pdf"), icc)
+            s["cmyk_pdf"] = f"side-{s['id']}-cmyk.pdf"
     data = {"result": result, "declination": north.as_dict(), "attribution": texts["attribution"].split("\n\n")}
     if not sides:
         state.write(cfg.build_dir, "render", h, data)

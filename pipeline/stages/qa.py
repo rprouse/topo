@@ -223,8 +223,9 @@ def run(cfg: Config) -> Path:
     add(("**Still the placeholder.** " if "PLACEHOLDER" in disc else "") + disc + "\n")
 
     add("## Outputs\n")
-    add(md_table(["Side", "Print PDF", "Scale", "Proofs"],
-                 [[s["id"], f"build/print/{s['pdf']}", f"1:{s['map_scale']:,.0f}",
+    add(md_table(["Side", "Print PDF", "Digital GeoPDF", "Scale", "Proofs"],
+                 [[s["id"], f"build/print/{s['pdf']}", f"build/digital/{s['geopdf']}" if s.get("geopdf") else "",
+                   f"1:{s['map_scale']:,.0f}",
                    ", ".join(f"{p['file']} ({p['pages']} pages)" for p in proofs.get("sets", []) if p["side"] == s["id"])]
                   for s in (render.get("result") or {}).get("sides", [])]))
 

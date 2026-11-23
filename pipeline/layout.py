@@ -232,6 +232,54 @@ def build_layout(project, cfg: Config, side: Side, texts: dict, north: dict):
     text("disclaimer", texts["disclaimer"], Rect(xs[2], top, c.w * cols[2] - gap, h), S.MIN_TEXT_PT)
     text("edition", texts["edition"], Rect(xs[3], top, c.w * cols[3], h), S.MIN_TEXT_PT, halign=Qt.AlignRight)
 
+    # ---- sheet index: where this side sits on the whole sheet
+    if len(cfg.sides) > 1:
+        ax0, ay0, ax1, ay1 = (min(s.extent[0] for s in cfg.sides), min(s.extent[1] for s in cfg.sides),
+                              max(s.extent[2] for s in cfg.sides), max(s.extent[3] for s in cfg.sides))
+        box_h = min(16.0, h - 12)
+        k = min(box_h / (ay1 - ay0), (c.w * cols[3]) / (ax1 - ax0))
+        bx = xs[3] + c.w * cols[3] - (ax1 - ax0) * k        # right-aligned under the edition text
+        by = top + h - box_h
+        for other in cfg.sides:
+            r = Rect(bx + (other.extent[0] - ax0) * k, by + (ay1 - other.extent[3]) * k,
+                     (other.extent[2] - other.extent[0]) * k, (other.extent[3] - other.extent[1]) * k)
+            shp = qc.QgsLayoutItemShape(layout)
+            shp.setShapeType(qc.QgsLayoutItemShape.Rectangle)
+            shp.setSymbol(qc.QgsFillSymbol.createSimple({
+                "color": "#d9d9d9" if other.id == side.id else "#ffffff", "outline_color": "#1a1a1a",
+                "outline_width": "0.2", "outline_width_unit": "MM"}))
+            layout.addLayoutItem(shp)
+            shp.attemptSetSceneRect(QRectF(r.x, r.y, r.w, r.h))
+            text(f"index_{other.id}", other.id, r, 7, bold=other.id == side.id,
+                 halign=Qt.AlignHCenter, valign=Qt.AlignVCenter)
+        text("index_note", "Sheet index", Rect(bx - 22, by + box_h - 3, 21, 3), S.MIN_TEXT_PT, halign=Qt.AlignRight)
+
+    # ---- "continues on side X" along edges shared with another side
+    sx0, sy0, sx1, sy1 = side.extent
+    tol = 1.0
+    for other in cfg.sides:
+        if other.id == side.id:
+            continue
+        ox0, oy0, ox1, oy1 = other.extent
+        overlap_y = min(sy1, oy1) - max(sy0, oy0) > 0
+        overlap_x = min(sx1, ox1) - max(sx0, ox0) > 0
+        note = f"Continues on side {other.id}"
+        gap = 9.0                                            # outside the grid annotations
+        if overlap_y and ox0 <= sx1 + tol and ox1 > sx1:     # neighbour to the east
+            lab = text(f"continues_{other.id}", note + " →", Rect(0, 0, 60, 4), 8, bold=True, halign=Qt.AlignHCenter)
+            lab.setItemRotation(90)
+            lab.attemptMove(qc.QgsLayoutPoint(g.map.right + gap, g.map.y + g.map.h / 2 - 30, mm))
+        elif overlap_y and ox1 >= sx0 - tol and ox0 < sx0:   # neighbour to the west
+            lab = text(f"continues_{other.id}", "← " + note, Rect(0, 0, 60, 4), 8, bold=True, halign=Qt.AlignHCenter)
+            lab.setItemRotation(-90)
+            lab.attemptMove(qc.QgsLayoutPoint(g.map.x - gap - 4, g.map.y + g.map.h / 2 + 30, mm))
+        elif overlap_x and oy0 <= sy1 + tol and oy1 > sy1:   # neighbour to the north
+            text(f"continues_{other.id}", "↑ " + note, Rect(g.map.x + g.map.w / 2 - 30, g.map.y - gap - 4, 60, 4), 8,
+                 bold=True, halign=Qt.AlignHCenter)
+        elif overlap_x and oy1 >= sy0 - tol and oy0 < sy0:   # neighbour to the south
+            text(f"continues_{other.id}", note + " ↓", Rect(g.map.x + g.map.w / 2 - 30, g.map.bottom + gap, 60, 4), 8,
+                 bold=True, halign=Qt.AlignHCenter)
+
     # ---- legend box over a corner of the map
     leg = qc.QgsLayoutItemLegend(layout)
     leg.setId("legend")
