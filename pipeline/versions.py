@@ -36,6 +36,13 @@ def _git_commit(root) -> str | None:
         return None
 
 
+def _cmd_version(*cmd: str) -> str | None:
+    try:
+        return subprocess.run(list(cmd), capture_output=True, text=True, check=True).stdout.strip() or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def collect(root) -> dict[str, str | None]:
     from osgeo import gdal, osr
 
@@ -46,6 +53,11 @@ def collect(root) -> dict[str, str | None]:
         "qgis": _qgis(),
         "pyyaml": _pkg("PyYAML"),
         "requests": _pkg("requests"),
+        "numpy": _pkg("numpy"),
+        "scipy": _pkg("scipy"),
+        "pygeomag": _pkg("pygeomag"),
+        "pypdf": _pkg("pypdf"),
+        "ghostscript": _cmd_version("gs", "--version"),
         "docker_image": os.environ.get("PIPELINE_IMAGE"),
         "git_commit": _git_commit(root),
         "git_dirty": os.environ.get("GIT_DIRTY"),

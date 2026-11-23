@@ -10,11 +10,6 @@ from pathlib import Path
 from . import config as config_mod
 from .attribution import attribution_text
 
-# Stage name -> milestone that implements it (for stages not built yet).
-PENDING = {
-    "proofs": "milestone 5",
-    "qa": "milestone 5",
-}
 
 
 def _cmd_config(cfg, args) -> int:
@@ -97,18 +92,26 @@ def _cmd_project_init(cfg, args) -> int:
     return subprocess.run(cmd).returncode
 
 
+def _cmd_proofs(cfg, args) -> int:
+    from .stages import proofs
+
+    proofs.run(cfg, force=args.force)
+    return 0
+
+
+def _cmd_qa(cfg, args) -> int:
+    from .stages import qa
+
+    qa.run(cfg)
+    return 0
+
+
 def _cmd_manifest(cfg, args) -> int:
     from .stages import manifest
 
     manifest.run(cfg)
     return 0
 
-
-def _cmd_pending(stage: str):
-    def run(cfg, args) -> int:
-        logging.getLogger("pipeline").error("stage '%s' is not implemented yet (%s)", stage, PENDING[stage])
-        return 3
-    return run
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -151,8 +154,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--force", action="store_true", help="overwrite the existing (hand-edited) project")
     sp.set_defaults(func=_cmd_project_init)
 
-    for stage in PENDING:
-        sub.add_parser(stage, help=f"({PENDING[stage]})").set_defaults(func=_cmd_pending(stage))
+    sp = sub.add_parser("proofs", help="100%-scale proof tiles (and greyscale) for an office printer")
+    sp.add_argument("--force", action="store_true")
+    sp.set_defaults(func=_cmd_proofs)
+
+    sp = sub.add_parser("qa", help="write build/qa-report.md")
+    sp.set_defaults(func=_cmd_qa)
 
     sp = sub.add_parser("manifest", help="write build/manifest.json")
     sp.set_defaults(func=_cmd_manifest)

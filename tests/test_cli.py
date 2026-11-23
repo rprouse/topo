@@ -7,8 +7,10 @@ def test_config_command(repo, capsys):
     assert "EPSG:2955" in out and "side A" in out and "fits" in out
 
 
-def test_pending_stage_fails_clearly(repo):
-    assert main(["--root", str(repo), "proofs"]) == 3
+def test_qa_on_empty_build(repo):
+    assert main(["--root", str(repo), "qa"]) == 0
+    report = (repo / "build" / "qa-report.md").read_text(encoding="utf-8")
+    assert "nothing to compare yet" in report and "Still the placeholder" in report
 
 
 def test_fetch_unknown_source(repo):

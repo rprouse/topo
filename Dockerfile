@@ -12,7 +12,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # Fonts used by the map styles (docs/symbol-spec.md). Install the same family
 # (Noto Sans) on the desktop where the QGIS project is edited, or labels move.
-RUN apt-get update  && apt-get install -y --no-install-recommends fonts-noto-core=20201225-2  && rm -rf /var/lib/apt/lists/*  && fc-cache -f
+# Ghostscript converts the proofs to greyscale (and later CMYK). It is not
+# version-pinned: Ubuntu replaces its security builds, so a pin would break
+# fresh builds. Its version is recorded in build/manifest.json instead.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends fonts-noto-core=20201225-2 ghostscript \
+ && rm -rf /var/lib/apt/lists/* \
+ && fc-cache -f
 
 # venv with system site packages so PyQGIS and the GDAL bindings stay visible.
 COPY requirements.txt /tmp/requirements.txt

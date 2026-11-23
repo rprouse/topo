@@ -169,15 +169,37 @@ Once the map is close, start working with a printer. Talk to them early; their c
 
 ## Making a new edition
 
-Plan on a yearly edition, or whenever enough has changed.
+Plan on a yearly edition, or whenever enough has changed. The previous edition's released map is the baseline for the change report, so the first step happens at release time.
 
-1. Pull fresh data: `make fetch` with the OSM snapshot date updated in config.
-2. Run `make all` and read the QA report's change list. These are the new and changed trails and roads to check.
-3. Review stale corrections, where the OSM feature they modified has gone. Delete or update them.
-4. Re-check labels in areas with changes. Most of your hand-placed labels will survive, but new features push things around.
-5. Field-check what changed, and send the proof back to your expert reviewers.
-6. Bump the edition number in `config/map.yaml`, check the declination in the collar, and send the files to the printer.
-7. Tag the release in git, and keep `build/manifest.json` with the tag. It records exactly what data went into that edition.
+**When you release an edition** (do this once per edition):
+
+1. **Archive the release** in `releases/<edition>/`, e.g. `releases/2027.1/`. Copy in:
+   - `build/map.gpkg`
+   - `build/manifest.json`
+   - `build/qa-report.md`
+   - `build/print/side-*.pdf`
+
+   `releases/` is git-ignored, because the no-data-in-git rule applies, so keep a backup copy elsewhere too.
+2. **Tag the commit** that built it (`git tag 2027.1`) and push the tag. Attach the archived files to a GitHub release for the tag, so the manifest and map travel with it.
+
+**When you start the next edition:**
+
+1. **Set the new edition's values** in `config/map.yaml`:
+   - `edition` (e.g. `2028.1`);
+   - `osm.snapshot` to the date you want OSM data from (normally today);
+   - `collar.declination_date` to the date the edition is meant for;
+   - `qa.baseline` to the last release's map (`releases/2027.1/map.gpkg`), so the change report covers everything since that edition, not just since the last build.
+2. **Run `make all`.** The OSM fetch is new because the snapshot date changed; terrain stays cached.
+3. **Read `build/qa-report.md`:**
+   - The **change list** holds the new, removed, reclassified, renamed and reshaped trails, roads, points and places, each with a grid reference and an OSM link. This is the field-checking list.
+   - Delete or retarget **stale corrections** (their OSM feature has gone).
+   - Settle new **name differences**.
+4. **Re-check labels** in areas with changes. Hand-placed labels are keyed to each feature's `source_id` and survive, but new features push things around.
+5. **Field-check** what changed, and send proofs (`make proofs`) to your expert reviewers.
+6. **Check the collar:** edition, OSM date and declination. Then send the files to the printer.
+7. **Release** as above.
+
+Automating the release step (a `make release EDITION=…` that copies the files and tags the commit) is about an afternoon's work. It's worth doing if editions become frequent; for one a year, the steps above are enough.
 
 ## Release checklist
 
@@ -187,5 +209,5 @@ Plan on a yearly edition, or whenever enough has changed.
 - [ ] Attribution, disclaimer, edition and declination correct in the collar
 - [ ] Hard proof and folded proof approved on the final stock
 - [ ] Label positions (`fernie.qgd`) and corrections committed
-- [ ] Release tagged; manifest archived
+- [ ] Release archived in `releases/<edition>/` (map.gpkg, manifest, QA report, print PDFs), tagged, and attached to a GitHub release
 - [ ] Shops lined up before the boxes arrive

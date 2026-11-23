@@ -13,7 +13,7 @@ A reproducible pipeline that turns open data into a print-ready 1:25,000 topogra
 | 2. Terrain: DEM selection, contours, hillshade | **Done**: LidarBC, then HRDEM, then CDEM; PNG preview |
 | 3. Vectors: OSM, roads, names, corrections → `map.gpkg` | **Done**: OSM (pinned snapshot), Freshwater Atlas, official names, corrections |
 | 4. Render: QGIS project, layout, print PDF | **Done**: print PDF per side with grid, collar, attribution, declination |
-| 5. Proofs and QA | Not started |
+| 5. Proofs and QA | **Done**: letter/legal proof tiles, greyscale, QA report with change list |
 | 6. Polish: GeoPDF, CMYK, double-sided layout, docs | Not started |
 
 ## Requirements
@@ -23,13 +23,15 @@ Docker and GNU make, nothing else. On Windows, install make (for example `winget
 ## Usage
 
 ```sh
-make all          # every stage, in order (stops at the first unimplemented stage for now)
+make all          # every stage, in order: fetch, terrain, vectors, render, proofs, qa, manifest
 make fetch        # download sources into .cache/
 make terrain      # DEM composite, contours, hillshade, spot heights, preview
 make vectors      # normalise all vector data into build/map.gpkg
 make corrections-init  # create an empty authored/corrections.gpkg
 make render       # print PDFs and PNG previews per side, through qgis/fernie.qgs
 make project-init # generate the starting QGIS project (once; it is hand-edited after)
+make proofs       # 100%-scale proof tiles for the office printer, plus greyscale
+make qa           # build/qa-report.md: the ground-truthing to-do list
 make manifest     # write build/manifest.json
 make config       # validate config and print the resolved AOI, sheet fit and sources
 make attribution  # print the generated attribution block
@@ -129,6 +131,25 @@ The **QGIS project** holds the layers, their styles and labels. It was generated
 5. **Save the project and commit `qgis/`**, including `fernie.qgd` and `fernie_attachments.zip`.
 
 `make project-init ARGS=--force` regenerates the project from code and **discards hand edits**. It's only for starting over.
+
+## Proofs
+
+`make proofs` cuts each side's print PDF into pages for an office printer, at 100% scale. The output goes to `build/proofs/`:
+- `side-A-letter.pdf` and `side-A-legal.pdf`: an index page showing the tile grid over the sheet, then one page per tile, with crop marks, overlap ticks and a label.
+- `-grey` versions of each, plus `side-A-grey.pdf`, the whole side in greyscale (made with Ghostscript). Use these to check that the map still reads without colour.
+
+Paper sizes, margin and overlap are set under `proofs:` in `map.yaml`. **Print at 100% / Actual size**, never fit-to-page. Tiles stay vector, so text is sharp on a laser printer.
+
+## QA report
+
+`make qa` writes `build/qa-report.md`. Read it after every build:
+
+- **To do:** counts of everything below.
+- **Terrain:** which source covers how much of the area, and where low-resolution fill was used.
+- **Changes since the baseline:** roads, trails, points of interest and places that were added, removed, reclassified, renamed, moved or reshaped since the previous build. Each row has a grid reference (km on the printed grid, and which side) and a link to the OSM feature. This is the ground-truthing list. The baseline defaults to the previous vectors build (`build/map.previous.gpkg`). For a new edition, point `qa.baseline` at the last release's archived `map.gpkg` (see "Making a new edition" in [`docs/PROCESS.md`](docs/PROCESS.md)).
+- **Corrections:** stale edits (their feature has gone from OSM) and edits with errors.
+- **Names:** differences between OSM and official names, to settle with corrections.
+- **Collar:** the attribution, declination and disclaimer as generated, to check against the printed collar.
 
 ## Data sources and licences
 

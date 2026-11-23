@@ -1,6 +1,8 @@
 # Downloaded data and build outputs: never committed.
 .cache/
 build/
+# Archived editions (map.gpkg etc.): kept locally and on GitHub releases, not in git.
+releases/
 
 __pycache__/
 *.pyc

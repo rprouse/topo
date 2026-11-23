@@ -112,6 +112,24 @@ layout:
   pdf_dpi: 300           # raster resolution (hillshade) in the print PDF
   preview_dpi: 50        # PNG previews
 
+# Proof tiles for an office printer: each side at 100% scale, cut into
+# letter / legal pages with overlap and crop marks, plus an index page.
+proofs:
+  papers: [letter, legal]
+  margin_mm: 8        # keep clear of the printer's unprintable edge
+  overlap_mm: 12      # each tile repeats this much of its neighbours
+  greyscale: true     # also a greyscale set (does the map read without colour?)
+
+# QA report. The change report compares build/map.gpkg with this baseline:
+# by default the map from the previous vectors build. To compare with a
+# released edition, point it at the release archive, e.g.
+# releases/2027.1/map.gpkg (see docs/PROCESS.md, "Making a new edition").
+qa:
+  baseline: build/map.previous.gpkg
+  change_layers: [roads, trails, pois, places]
+  moved_threshold_m: 25          # report a point that moved further than this
+  length_change_threshold: 0.10  # report a line whose length changed by more than 10%
+
 collar:
   # Magnetic declination at the map centre, from the high-resolution World
   # Magnetic Model (WMMHR-2025, valid to 2030), computed for this date. Use the date the
