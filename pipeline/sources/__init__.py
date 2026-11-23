@@ -11,14 +11,16 @@ from types import ModuleType
 
 from . import wfs
 
+# Kinds fetched together by the coverage-driven terrain coordinator
+# (sources/terrain.py) rather than one by one.
+TERRAIN_KINDS = ("lidarbc", "stac_cog")
+
 FETCHERS: dict[str, ModuleType] = {
     "wfs": wfs,
 }
 
 # Kinds that exist in sources.yaml but whose fetchers arrive in later milestones.
 PLANNED: dict[str, str] = {
-    "lidarbc": "milestone 2 (terrain)",
-    "stac_cog": "milestone 2 (terrain)",
     "geofabrik": "milestone 3 (vectors)",
     "bcgnws": "milestone 3 (vectors)",
     "geomag": "milestone 4 (render)",

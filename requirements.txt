@@ -1,6 +1,9 @@
 # Python dependencies installed into the image's venv (which also sees the
 # QGIS image's system packages: PyQGIS, GDAL/OGR bindings). Versions pinned.
-# PyYAML and requests match the versions the pinned QGIS image ships via apt.
+# PyYAML, requests, numpy and scipy match the versions the pinned QGIS image
+# ships via apt, so pip leaves the system copies in place.
 PyYAML==6.0.1
 requests==2.31.0
+numpy==1.26.4
+scipy==1.11.4
 pytest==8.3.4

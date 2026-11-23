@@ -77,3 +77,9 @@ def test_undefined_licence(repo):
     p.write_text(yaml.safe_dump(s))
     with pytest.raises(config.ConfigError, match="licence"):
         config.load(repo)
+
+
+def test_terrain_sources_must_exist(repo):
+    _edit_map(repo, lambda m: m["terrain"].update(sources=["lidarbc_dem:2022", "nope"]))
+    with pytest.raises(config.ConfigError, match="nope"):
+        config.load(repo)

@@ -225,6 +225,11 @@ def load(root: Path | str = ".") -> Config:
             raw=dict(sd),
         )
 
+    for e in (m.get("terrain") or {}).get("sources", []):
+        sid = str(e).partition(":")[0].strip()
+        if sid not in sources:
+            raise ConfigError(f"map.yaml terrain.sources: '{e}' names an unknown source '{sid}'")
+
     return Config(
         root=root, map=m, crs=crs, scale=scale, edition=edition,
         aoi=aoi, aoi_buffered=aoi_buffered, sides=tuple(sides),

@@ -8,8 +8,8 @@ jobs:
   geodata-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: python scripts/check_no_geodata.py
@@ -17,7 +17,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker build -t fernie-topo:ci .
       - run: docker run --rm -v "$PWD:/work" -w /work --entrypoint python fernie-topo:ci -m pytest -q tests
       - run: docker run --rm -v "$PWD:/work" -w /work fernie-topo:ci config

@@ -12,7 +12,6 @@ from .attribution import attribution_text
 
 # Stage name -> milestone that implements it (for stages not built yet).
 PENDING = {
-    "terrain": "milestone 2",
     "vectors": "milestone 3",
     "render": "milestone 4",
     "proofs": "milestone 5",
@@ -59,6 +58,13 @@ def _cmd_fetch(cfg, args) -> int:
     return 0
 
 
+def _cmd_terrain(cfg, args) -> int:
+    from .stages import terrain
+
+    terrain.run(cfg, force=args.force)
+    return 0
+
+
 def _cmd_manifest(cfg, args) -> int:
     from .stages import manifest
 
@@ -91,6 +97,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--refresh", action="store_true", help="ignore the cache and re-download")
     sp.add_argument("--verify", action="store_true", help="re-check sha256 of cached files")
     sp.set_defaults(func=_cmd_fetch)
+
+    sp = sub.add_parser("terrain", help="DEM composite, contours, hillshade, spot heights, preview")
+    sp.add_argument("--force", action="store_true", help="re-run every step even if inputs are unchanged")
+    sp.set_defaults(func=_cmd_terrain)
 
     for stage in PENDING:
         sub.add_parser(stage, help=f"({PENDING[stage]})").set_defaults(func=_cmd_pending(stage))

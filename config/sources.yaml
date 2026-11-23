@@ -84,32 +84,60 @@ sources:
     verified: 2026-11-22
 
   # ---- Not yet verified / implemented (later milestones) -----------------
+  # ---- Terrain (priority order is terrain.sources in map.yaml) ------------
+  # LidarBC publishes its tile index as an ArcGIS feature service; each tile
+  # record has an s3Url to a 1 m bare-earth DEM GeoTIFF in NAD83(CSRS) UTM.
+  # The index description states the data is released under the Open
+  # Government Licence - BC. Tiles are downloaded whole: the 2022 tiles are
+  # strip-organised (not COGs) and remote windowed reads proved unreliable.
+  # Several survey years overlap, each with partial coverage; newest wins.
   lidarbc_dem:
-    title: LidarBC bare-earth DEM
+    title: LidarBC bare-earth DEM (1 m)
     kind: lidarbc
     group: terrain
-    endpoint: https://lidar.gov.bc.ca/
+    endpoint: https://services6.arcgis.com/ubm4tcTYICKBpist/arcgis/rest/services/LiDAR_BC_S3_Public/FeatureServer
+    portal: https://lidar.gov.bc.ca/
+    index_layers:
+      5: DEM 1:2,500 grid
+      6: DEM 1:20,000 grid
+    max_year: null            # pin to e.g. 2024 to ignore newer surveys
+    resample: average         # 1 m -> working grid
     licence: ogl-bc
-    credit: Province of British Columbia
-    verified: null            # milestone 2
+    credit: Province of British Columbia (LidarBC)
+    verified: 2026-11-22
 
+  # NRCan HRDEM 2 m mosaic, COGs on S3 found through the datacube STAC API.
+  # Read with windowed requests; only the gap area is pulled.
   hrdem:
-    title: NRCan HRDEM Mosaic
+    title: NRCan HRDEM Mosaic (2 m)
     kind: stac_cog
     group: terrain
     endpoint: https://datacube.services.geo.ca/stac/api/
+    collection: hrdem-mosaic-2m
+    asset: dtm
+    resample: bilinear
     licence: ogl-canada
     credit: Natural Resources Canada
-    verified: null            # milestone 2
+    verified: 2026-11-22
 
+  # CDEM (16 m here) is the brief's last resort. NRCan now also publishes
+  # MRDEM-30 (collection mrdem-30, asset dtm) as its successor; switch the
+  # collection here if CDEM is retired.
   cdem:
     title: NRCan Canadian Digital Elevation Model (CDEM)
     kind: stac_cog
     group: terrain
     endpoint: https://datacube.services.geo.ca/stac/api/
+    collection: cdem
+    asset: dem
+    resample: cubic
+    # CDEM stores whole metres; at 2 m every 1 m step shows as a terrace in
+    # the hillshade. Smooth it before it fills gaps. (MRDEM-30 was tried as
+    # an alternative: smoother but coarser, with pits and bumps.)
+    smooth_sigma_m: 12
     licence: ogl-canada
     credit: Natural Resources Canada
-    verified: null            # milestone 2
+    verified: 2026-11-22
 
   osm:
     title: OpenStreetMap (Geofabrik British Columbia extract)

@@ -39,14 +39,44 @@ sheet:
       extent: east
 
 terrain:
+  # Terrain sources in order of preference. The fetch stage takes the first
+  # source that has data for each part of the AOI and fills gaps from the
+  # next one down. "source:YEAR" restricts an entry to one survey year, so
+  # years from different sources can be interleaved.
+  #
+  # LidarBC's 2016 tiles contain TIN-interpolated fans beyond the real survey
+  # coverage, reported as valid data, and LidarBC publishes no footprint to
+  # mask them with. NRCan's HRDEM mosaic holds the same 2016 survey (plus a
+  # 2023 one) clipped to the real coverage, so LidarBC 2016 is left out: below
+  # HRDEM it would only add the fans. Areas no lidar survey covers fall
+  # through to the national DEM.
+  sources: [lidarbc_dem:2024, lidarbc_dem:2022, hrdem, cdem]
+  dem_resolution_m: 2        # working DEM grid; 300 dpi at 1:25,000 is ~2.1 m
+  # Gaps smaller than this are interpolated instead of fetching another
+  # source for them (lidar DEMs often have small voids on water).
+  min_fill_area_m2: 400
+  fill_max_distance_m: 50    # max distance to interpolate across voids
+
   contour_interval_m: 20     # 10 must also work
   index_every: 5             # every 5th contour is an index line (100 m at 20 m)
   smoothing_sigma_m: 6       # Gaussian smoothing applied before contouring
-  hillshade_resolution_m: 3  # print-resolution hillshade (2-5 m)
+  contour_simplify_m: 1.0    # Douglas-Peucker tolerance before/after smoothing
+  contour_smooth_iterations: 2  # Chaikin corner-cutting passes
+  contour_min_length_m: 60   # drop closed contours shorter than this (noise)
+
+  hillshade_resolution_m: 2  # print-resolution hillshade (2-5 m)
   hillshade_azimuth: 315
   hillshade_altitude: 45
+  hillshade_z_factor: 1.0
   multidirectional: false
+
+  # Spot-height candidates from DEM summits. The vectors stage (milestone 3)
+  # drops those near named OSM/BCGNIS peaks and applies spot_heights_max.
   spot_heights_max: 40
+  spot_height_radius_m: 400  # a summit must be the highest point within this
+  spot_height_min_relief_m: 60
+
+  preview_dpi: 100           # PNG preview of hillshade + contours
 
 grid:
   spacing_m: 1000
