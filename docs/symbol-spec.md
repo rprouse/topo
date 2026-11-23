@@ -16,7 +16,7 @@ Sizes are on paper: millimetres for lines and symbols, points for text.
 
 | Element | Symbol |
 |---|---|
-| Hillshade | Greyscale, **multiply** blend, 45% opacity, over the landcover tints. Keep it subtle; most first attempts are too dark. |
+| Hillshade | Multiplied over the landcover tints at 45% strength. Keep it subtle; most first attempts are too dark. In QGIS this is done as a black-to-transparent colour ramp with normal blending, which is the same thing mathematically. **Don't use a Multiply blend mode:** in PDF export it drops italic label fonts. |
 | Contour | Brown `#a0623a`, 0.12 mm |
 | Index contour | Brown, 0.25 mm, labelled in brown 6.5 pt, on the line |
 | Spot height | Black dot 0.6 mm, height 6.5 pt |

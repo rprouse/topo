@@ -210,15 +210,22 @@ def build(root: Path, force: bool = False) -> Path:
     lc.setRenderer(r)
     add(lc)
 
-    # Hillshade, multiplied over the tints below
+    # Hillshade as black shadow whose transparency follows the shading:
+    # value 0 -> opaque black, 255 -> fully transparent. Drawn normally at
+    # opacity o, this equals multiplying the tints below by the hillshade
+    # (base * (1 - o * (1 - g))). A real multiply blend mode is avoided on
+    # purpose: in PDF export it sends the whole map down a different render
+    # path, which drops italic label fonts (and may rasterise vectors).
     hs = qc.QgsRasterLayer(str(terrain / "hillshade.tif"), "Hillshade")
-    ce = hs.renderer().contrastEnhancement()
-    if ce is not None:
-        ce.setContrastEnhancementAlgorithm(qc.QgsContrastEnhancement.StretchToMinimumMaximum)
-        ce.setMinimumValue(0)
-        ce.setMaximumValue(255)
-    hs.renderer().setOpacity(S.HILLSHADE_OPACITY)
-    hs.setBlendMode(QPainter.CompositionMode_Multiply)
+    ramp = qc.QgsColorRampShader(0, 255)
+    ramp.setColorRampType(qc.QgsColorRampShader.Interpolated)
+    ramp.setColorRampItemList([qc.QgsColorRampShader.ColorRampItem(0, QColor(0, 0, 0, 255), "shade"),
+                               qc.QgsColorRampShader.ColorRampItem(255, QColor(0, 0, 0, 0), "lit")])
+    shader = qc.QgsRasterShader()
+    shader.setRasterShaderFunction(ramp)
+    hs_renderer = qc.QgsSingleBandPseudoColorRenderer(hs.dataProvider(), 1, shader)
+    hs_renderer.setOpacity(S.HILLSHADE_OPACITY)
+    hs.setRenderer(hs_renderer)
     add(hs)
 
     # Water areas
