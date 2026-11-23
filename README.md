@@ -226,6 +226,32 @@ See [Editing styles and labels in QGIS](#editing-styles-and-labels-in-qgis) abov
 4. Run `make vectors render` and check `build/vectors-report.json` or `make qa` for errors.
 5. Commit `authored/corrections.gpkg`.
 
+### Removing features for good
+
+Never delete a feature from `build/map.gpkg`: the next build puts it back. Remove it with a correction, which is applied at the end of every vectors build:
+
+1. Open `qgis/fernie.qgs` and add `authored/corrections.gpkg` to it.
+2. With the **Identify** tool, click the feature and copy its `source_id` (e.g. `osm:way/123456789`).
+3. Open the **`edits`** table (right-click → Open Attribute Table), turn on editing and add a row:
+
+   | Field | Value |
+   |---|---|
+   | `id` | a unique id, e.g. `e012` |
+   | `source_id` | the id from step 2 |
+   | `action` | `delete`, or `hide` |
+   | `layer` | optional, e.g. `pois`: only touch the feature in that layer |
+   | `note`, `author` | why it was removed, for later |
+
+4. Save, run `make vectors render`, and commit `authored/corrections.gpkg`.
+
+`delete` takes the feature out of `map.gpkg`. `hide` keeps it, with `hidden=1`, and the styles don't draw it. Use `hide` if you might want it back.
+
+Things to know:
+- **Stale removals:** if the OSM feature is later deleted, the edit matches nothing and the QA report lists it under "Stale corrections"; delete the row. If OSM replaces the feature with a new id, it reappears, so check the QA "Changes" list after moving the snapshot.
+- **Spot heights** are generated from the elevation model and their id is their position (`dem:spot/<x>_<y>`). A delete holds while the terrain stays the same; a change of elevation sources can move the point and bring it back.
+- **Whole categories** (all campsites, every `minor_line` power line): rather than hundreds of edits, drop the rule from `config/osm_mapping.yaml` so the data never comes in, or switch the rule off in the layer's symbology in QGIS so it's kept but not drawn.
+- **Wrong in the real world** (a trail that's gone, a removed building): fix it in OpenStreetMap instead. It then disappears from every future build, and from everyone else's maps too.
+
 ### Corrections in the field with QField
 
 1. Copy `authored/corrections.gpkg` and `build/map.gpkg` to the phone, with a background such as `build/terrain/hillshade.tif`. QFieldSync, the QGIS plugin, can package them as a project, or open the GeoPackages directly in QField.
