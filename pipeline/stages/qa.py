@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 OSM_URL = "https://www.openstreetmap.org/{kind}/{id}"
 WATCH_FIELDS = {"roads": ["class", "name", "surface", "access"],
-                "trails": ["class", "difficulty", "name", "sac_scale", "access"],
+                "trails": ["class", "name", "sac_scale", "access"],
                 "pois": ["class", "name", "ele"],
                 "places": ["class", "name"]}
 
@@ -104,7 +104,7 @@ def compare(cfg: Config, new: Path, old: Path) -> list[dict]:
                 continue
             diffs = [f"{f}: {o.get(f)!s} → {n.get(f)!s}" for f in fields if (o.get(f) or None) != (n.get(f) or None)]
             if diffs:
-                kind = "reclassified" if any(d.startswith(("class", "difficulty", "sac_scale")) for d in diffs) else (
+                kind = "reclassified" if any(d.startswith(("class", "sac_scale")) for d in diffs) else (
                     "renamed" if any(d.startswith("name") for d in diffs) else "attributes")
                 rows.append({**base, "change": kind, "detail": "; ".join(diffs)})
             go, gn = o["_geom"], n["_geom"]

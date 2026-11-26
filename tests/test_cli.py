@@ -8,6 +8,12 @@ def test_config_command(repo, capsys):
 
 
 def test_qa_on_empty_build(repo):
+    import yaml
+
+    p = repo / "config" / "map.yaml"
+    m = yaml.safe_load(p.read_text(encoding="utf-8"))
+    m["collar"]["disclaimer"] = "[PLACEHOLDER DISCLAIMER]"
+    p.write_text(yaml.safe_dump(m), encoding="utf-8")
     assert main(["--root", str(repo), "qa"]) == 0
     report = (repo / "build" / "qa-report.md").read_text(encoding="utf-8")
     assert "nothing to compare yet" in report and "Still the placeholder" in report

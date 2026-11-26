@@ -64,13 +64,10 @@ ROADS = [
     ("highway", "Highway", (C["black"], 1.15), {"color": C["highway"], "width": 0.85}),
 ]
 
-# Trails: red/black dashes by difficulty. (filter, legend label, colour, width, dash)
+# Trails: one symbol for every trail, plus paved paths. (filter, legend label, colour, width, dash)
 TRAILS = [
     ('"class" = \'cycleway\'', "Paved path", C["trail_red"], 0.3, None),
-    ('"difficulty" = \'easy\'', "Trail: easy", C["trail_red"], 0.35, (1.6, 0.6)),
-    ('"difficulty" = \'moderate\'', "Trail: moderate", C["trail_red"], 0.35, (0.8, 0.6)),
-    ('"difficulty" = \'difficult\'', "Trail: difficult", C["black"], 0.35, (0.8, 0.6)),
-    ("ELSE", "Trail: not graded", C["trail_red"], 0.35, (0.35, 0.5)),
+    ("ELSE", "Trail", C["trail_red"], 0.35, (0.35, 0.5)),
 ]
 
 POIS = [  # class, legend label, marker properties

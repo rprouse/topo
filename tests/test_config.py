@@ -32,6 +32,7 @@ def test_buffer_applied(repo):
 
 
 def test_grid_faces(repo):
+    _edit_map(repo, lambda m: m["sheet"]["grid"].pop("titles", None))
     cfg = config.load(repo)
     ids = [s.id for s in cfg.sides]
     assert ids == list("ABCDEFGHI")
@@ -57,7 +58,8 @@ def test_aoi_offset(repo):
 
 
 def test_grid_titles_and_ids(repo):
-    _edit_map(repo, lambda m: m["sheet"]["grid"].update(rows=1, columns=2, ids=["W", "X"], titles={"X": "Island Lake"}))
+    _edit_map(repo, lambda m: (m["sheet"]["grid"].pop("titles", None),
+                               m["sheet"]["grid"].update(rows=1, columns=2, ids=["W", "X"], titles={"X": "Island Lake"})))
     cfg = config.load(repo)
     assert [(s.id, s.title) for s in cfg.sides] == [("W", "Fernie W"), ("X", "Island Lake")]
 

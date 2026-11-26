@@ -18,7 +18,7 @@ A reproducible pipeline that turns open data into a print-ready 1:25,000 topogra
 
 ## Requirements
 
-Docker and GNU make, nothing else. On Windows, install make (for example `winget install ezwinports.make`) and run it from Git Bash.
+Docker and GNU make, nothing else. On Windows, install make (for example `winget install ezwinports.make`) and run it from **Git Bash**.
 
 ## Usage
 
@@ -97,12 +97,12 @@ Each terrain step re-runs only when its own inputs change, so tuning the contour
 
 `authored/corrections.gpkg` holds fixes that are specific to this map, or that can't go in OSM. It is committed and applied last. Open it in QGIS, or in QField in the field.
 
-- **`edits`** (a table): change a feature by its `source_id` (see the `source_id` field in `map.gpkg`). `action` is `set` (with `field` and `value`, e.g. `difficulty` = `difficult` or `name` = `Lizard Range`), `hide`, `delete` or `close` (`value` is the closure note). Optional `layer` restricts the edit to one layer.
-- **`added_points`, `added_lines`, `added_polygons`**: new features. Set `id`, `target_layer` (e.g. `trails`, `pois`), `class` and `name`; other fields go in `attributes` as JSON, e.g. `{"difficulty": "moderate"}`.
+- **`edits`** (a table): change a feature by its `source_id` (see the `source_id` field in `map.gpkg`). `action` is `set` (with `field` and `value`, e.g. `name` = `Lizard Range` or `class` = `track`), `hide`, `delete` or `close` (`value` is the closure note). Optional `layer` restricts the edit to one layer.
+- **`added_points`, `added_lines`, `added_polygons`**: new features. Set `id`, `target_layer` (e.g. `trails`, `pois`), `class` and `name`; other fields go in `attributes` as JSON, e.g. `{"surface": "gravel"}`.
 
 An edit whose feature no longer exists in the data (because someone changed OSM) is reported as stale in `vectors-report.json`.
 
-If a stranger mapping the area would want the fix, make it in OSM with JOSM instead; it flows into the next build. Trail difficulty is the main exception: OSM has `sac_scale` on only a few trails here, so grading will mostly live in `edits`.
+If a stranger mapping the area would want the fix, make it in OSM with JOSM instead; it flows into the next build.
 
 ## Render
 
@@ -206,7 +206,7 @@ The pipeline handles data and rendering; these are the hand-made parts. Each fix
 | What's wrong | Fix it in |
 |---|---|
 | A trail or road is missing, wrong or misclassified in the real world | OpenStreetMap, with JOSM |
-| Something specific to this map (a local name, a closure, trail grading) | `authored/corrections.gpkg` |
+| Something specific to this map (a local name, a closure) | `authored/corrections.gpkg` |
 | It looks wrong (colour, weight, symbol) | Styles in `qgis/fernie.qgs` |
 | A label is badly placed | Label positions in QGIS (`qgis/fernie.qgd`) |
 
@@ -222,7 +222,7 @@ See [Editing styles and labels in QGIS](#editing-styles-and-labels-in-qgis) abov
 
 1. Open `authored/corrections.gpkg` in QGIS, alongside `build/map.gpkg` (or the project).
 2. **To change an existing feature:** use the Identify tool to read its `source_id` (e.g. `osm:way/123456`). Add a row to the `edits` table with that `source_id`, an `action` (`set`, `hide`, `delete` or `close`), and for `set` the `field` and `value`. Fill in `note` and `author` for future-you.
-3. **To add a feature:** digitize it into `added_points`, `added_lines` or `added_polygons`. Give it an `id`, a `target_layer` (`trails`, `pois`, …), a `class` and a `name`; other fields go in `attributes` as JSON, e.g. `{"difficulty": "moderate"}`.
+3. **To add a feature:** digitize it into `added_points`, `added_lines` or `added_polygons`. Give it an `id`, a `target_layer` (`trails`, `pois`, …), a `class` and a `name`; other fields go in `attributes` as JSON, e.g. `{"surface": "gravel"}`.
 4. Run `make vectors render` and check `build/vectors-report.json` or `make qa` for errors.
 5. Commit `authored/corrections.gpkg`.
 

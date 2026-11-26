@@ -34,11 +34,11 @@ def _gpkg(path, feats):
     srs = osr.SpatialReference(); srs.ImportFromEPSG(2955)
     ds = ogr.GetDriverByName("GPKG").CreateDataSource(str(path))
     lyr = ds.CreateLayer("trails", srs, ogr.wkbMultiLineString)
-    for f in ("source_id", "class", "name", "difficulty"):
+    for f in ("source_id", "class", "name", "sac_scale"):
         lyr.CreateField(ogr.FieldDefn(f, ogr.OFTString))
     for sid, name, diff, coords in feats:
         f = ogr.Feature(lyr.GetLayerDefn())
-        f.SetField("source_id", sid); f.SetField("class", "path"); f.SetField("name", name); f.SetField("difficulty", diff)
+        f.SetField("source_id", sid); f.SetField("class", "path"); f.SetField("name", name); f.SetField("sac_scale", diff)
         f.SetGeometry(ogr.CreateGeometryFromWkt("MULTILINESTRING((" + ",".join(f"{x} {y}" for x, y in coords) + "))"))
         lyr.CreateFeature(f)
     ds = None
@@ -48,11 +48,12 @@ def test_compare_reports_changes(repo, tmp_path):
     cfg = config.load(repo)
     x, y = cfg.sides[0].extent[0] + 1000, cfg.sides[0].extent[1] + 1000
     line = [(x, y), (x + 1000, y)]
-    _gpkg(tmp_path / "old.gpkg", [("osm:way/1", "A", "easy", line), ("osm:way/2", "B", "easy", line),
-                                  ("osm:way/3", "C", "easy", line), ("osm:way/4", "D", "easy", line)])
-    _gpkg(tmp_path / "new.gpkg", [("osm:way/1", "A", "easy", line), ("osm:way/2", "B", "difficult", line),
-                                  ("osm:way/3", "C2", "easy", line), ("osm:way/4", "D", "easy", [(x, y), (x + 2000, y)]),
-                                  ("osm:way/5", "E", "easy", line)])
+    h, a = "hiking", "alpine_hiking"
+    _gpkg(tmp_path / "old.gpkg", [("osm:way/1", "A", h, line), ("osm:way/2", "B", h, line),
+                                  ("osm:way/3", "C", h, line), ("osm:way/4", "D", h, line)])
+    _gpkg(tmp_path / "new.gpkg", [("osm:way/1", "A", h, line), ("osm:way/2", "B", a, line),
+                                  ("osm:way/3", "C2", h, line), ("osm:way/4", "D", h, [(x, y), (x + 2000, y)]),
+                                  ("osm:way/5", "E", h, line)])
     cfg.map["qa"] = {"change_layers": ["trails"], "length_change_threshold": 0.1}
     rows = {(r["source_id"], r["change"]) for r in qa.compare(cfg, tmp_path / "new.gpkg", tmp_path / "old.gpkg")}
     assert rows == {("osm:way/2", "reclassified"), ("osm:way/3", "renamed"),

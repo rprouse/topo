@@ -58,15 +58,8 @@ layers:
       - {class: path, when: {highway: [path, footway, bridleway]}}
       - {class: steps, when: {highway: steps}}
       - {class: cycleway, when: {highway: cycleway}}
-    derived:
-      # Hiking difficulty from sac_scale; the corrections layer can override
-      # it (most trails here have no sac_scale in OSM).
-      difficulty:
-        - {value: easy, when: {sac_scale: hiking}}
-        - {value: moderate, when: {sac_scale: mountain_hiking}}
-        - {value: difficult, when: {sac_scale: [demanding_mountain_hiking, alpine_hiking,
-                                                demanding_alpine_hiking, difficult_alpine_hiking]}}
-        - {value: unknown}
+    # No difficulty grading: almost no trails here have sac_scale in OSM, so
+    # all trails share one symbol. sac_scale is kept as a plain attribute.
 
   railways:
     from: [lines]

@@ -46,8 +46,8 @@ sheet:
     face_width_m: 14000
     face_height_m: 21000
     overlap_m: 1000
-    # ids: [A, B, C, D, E, F, G, H, I]     # default
-    # titles: {E: Fernie}                  # default: compass names, centre = title
+    ids: [A, B, C, D, E, F, G, H, I]     # default
+    titles: {A: Tanglefoot, B: Mount Washburn, C: Sparwood, D: Island Lake, E: Fernie, F: Coal Creek, G: Jaffray, H: Elko, I: Flathead}                  # default: compass names, centre = title
   overview: true
 
 terrain:
@@ -100,7 +100,7 @@ grid:
 # data. "latest" uses the live database (refreshed at most once a day).
 # For a new edition, move the date forward and read the QA change report.
 osm:
-  snapshot: "2026-11-01"
+  snapshot: "2026-11-25"
 
 vectors:
   osm_mapping: config/osm_mapping.yaml      # OSM tags -> layers and classes
@@ -168,8 +168,10 @@ collar:
   # Magnetic Model (WMMHR-2025, valid to 2030), computed for this date. Use the date the
   # edition is meant for, so a rebuild prints the same value.
   declination_date: "2027-01-01"
-  # PLACEHOLDER: Rob to supply final wording, ideally reviewed by a lawyer.
   disclaimer: >-
-    [PLACEHOLDER DISCLAIMER - final wording to be supplied. This map is a
-    guide only. Conditions change. It does not show avalanche hazard. Users
-    are responsible for their own safety.]
+    This map is a guide only. We do not warrant its accuracy nor do we guarantee its
+    completeness. Roads and trails may change and may no longer be passable. Conditions
+    and map features change. Users are responsible for their own safety. Therefore they
+    should exercise caution and use their own judgment when planning routes and
+    navigating the terrain. Travel on resource roads and trails is inherently risky and
+    users must exercise caution and follow all applicable regulations.

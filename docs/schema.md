@@ -20,7 +20,7 @@ OSM-derived layers come from `config/osm_mapping.yaml`; edit that file to change
 | Layer | Geometry | Source | Classes | Extra fields |
 |---|---|---|---|---|
 | `roads` | line | OSM | `highway`, `major`, `fsr`, `paved`, `gravel`, `track`, `track_4wd` | `ref`, `surface`, `tracktype`, `access`, `bridge`, `tunnel`, `layer`, `operator` |
-| `trails` | line | OSM | `path`, `steps`, `cycleway` | `difficulty` (`easy`, `moderate`, `difficult`, `unknown`, from `sac_scale`), `sac_scale`, `trail_visibility`, `surface`, `mtb_scale`, `mtb_scale_imba`, `access`, `foot`, `bicycle` |
+| `trails` | line | OSM | `path`, `steps`, `cycleway` | `sac_scale`, `trail_visibility`, `surface`, `mtb_scale`, `mtb_scale_imba`, `access`, `foot`, `bicycle` |
 | `railways` | line | OSM | `rail` | |
 | `lifts` | line | OSM | the `aerialway` value (`chair_lift`, `t-bar`, …) | |
 | `power_lines` | line | OSM | `line`, `minor_line` | |

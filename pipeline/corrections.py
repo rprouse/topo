@@ -7,7 +7,7 @@ Applied last in the vectors stage. Layers:
                      source_id  feature to change, as in map.gpkg (osm:way/123, fwa:stream/456, corr:a001)
                      layer      optional: only touch the feature in this map layer
                      action     hide | delete | set | close
-                     field      for set: the field to change (e.g. name, class, difficulty)
+                     field      for set: the field to change (e.g. name, class, surface)
                      value      for set: the new value; for close: the closure note
                      note, author, edited   free text, for the record
   added_points     new point features      } fields: id, target_layer, class,

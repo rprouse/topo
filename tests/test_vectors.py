@@ -66,10 +66,10 @@ def test_road_classes(mapping, tags, cls):
     assert mapping["roads"].classify(tags)["class"] == cls
 
 
-def test_trail_difficulty_and_attributes(mapping):
+def test_trail_attributes(mapping):
     r = mapping["trails"].classify({"highway": "path", "sac_scale": "mountain_hiking", "mtb:scale": "2", "name": "Hyme"})
-    assert r["class"] == "path" and r["difficulty"] == "moderate" and r["mtb_scale"] == "2" and r["name"] == "Hyme"
-    assert mapping["trails"].classify({"highway": "path"})["difficulty"] == "unknown"
+    assert r["class"] == "path" and r["sac_scale"] == "mountain_hiking" and r["mtb_scale"] == "2" and r["name"] == "Hyme"
+    assert "difficulty" not in r          # trails are not graded
     assert mapping["trails"].classify({"highway": "trunk"}) is None
 
 
@@ -138,18 +138,18 @@ def test_normalise_name():
 # ---- corrections ---------------------------------------------------------
 
 KINDS = {"trails": "line", "pois": "point"}
-FIELDS = {"trails": ["class", "name", "difficulty"], "pois": ["class", "name", "ele"]}
+FIELDS = {"trails": ["class", "name", "surface"], "pois": ["class", "name", "ele"]}
 
 
 def _trail(sid, name="T"):
     return Feature("trails", line((0, 0), (1, 1)), {"source": "osm", "source_id": sid, "class": "path",
-                                                   "name": name, "difficulty": "unknown", "hidden": 0, "closed": 0})
+                                                   "name": name, "surface": "ground", "hidden": 0, "closed": 0})
 
 
 def test_corrections_apply():
     feats = [_trail("osm:way/1"), _trail("osm:way/2"), _trail("osm:way/3"), _trail("osm:way/4")]
     edits = [
-        {"id": "e1", "source_id": "osm:way/1", "action": "set", "field": "difficulty", "value": "difficult"},
+        {"id": "e1", "source_id": "osm:way/1", "action": "set", "field": "surface", "value": "gravel"},
         {"id": "e2", "source_id": "osm:way/2", "action": "hide"},
         {"id": "e3", "source_id": "osm:way/3", "action": "delete"},
         {"id": "e4", "source_id": "osm:way/4", "action": "close", "value": "Bridge out 2026"},
@@ -162,7 +162,7 @@ def test_corrections_apply():
             {"id": "a2", "target_layer": "trails", "kind": "point", "geom": pt(1, 1), "from_layer": "added_points"}]
     out, rep = corr.apply(feats, KINDS, FIELDS, edits, adds)
     by = {f.source_id: f for f in out}
-    assert by["osm:way/1"].props["difficulty"] == "difficult"
+    assert by["osm:way/1"].props["surface"] == "gravel"
     assert by["osm:way/2"].props["hidden"] == 1
     assert "osm:way/3" not in by
     assert by["osm:way/4"].props["closed"] == 1 and by["osm:way/4"].props["closure_note"] == "Bridge out 2026"

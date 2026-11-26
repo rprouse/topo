@@ -81,5 +81,6 @@ def test_collar_texts(repo):
     assert "Magnetic declination" in t["scale_note"] and "° E" in t["scale_note"]
     assert t["attribution"].startswith("Map data © OpenStreetMap contributors")
     assert "Open Government Licence - Canada" in t["attribution"]
-    assert "PLACEHOLDER" in t["disclaimer"]
+    disc = " ".join(str(cfg.map["collar"]["disclaimer"]).split())
+    assert t["disclaimer"] == disc and "\n" not in t["disclaimer"]
     assert "Edition 2027.1" in t["edition"] and "2026-11-01" in t["edition"]

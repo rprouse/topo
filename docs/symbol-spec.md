@@ -57,18 +57,15 @@ Road names and refs are 6.5 pt, along the line.
 
 ## Trails
 
-Trails are the reason people buy the map, so they get the strongest contrast: red and black dashes by difficulty.
+Trails are the reason people buy the map, so they get the strongest contrast. They are not graded by difficulty: almost no trails here have a difficulty (`sac_scale`) in OSM, so every trail gets one symbol.
 
-| Difficulty | Symbol |
+| Class | Symbol |
 |---|---|
-| Easy | Red `#d7191c` 0.35 mm, long dash 1.6 / 0.6 |
-| Moderate | Red 0.35 mm, short dash 0.8 / 0.6 |
-| Difficult | **Black** 0.35 mm, short dash 0.8 / 0.6 |
-| Not graded | Red 0.35 mm, dotted 0.35 / 0.5 |
+| Trail | Red `#d7191c` 0.35 mm, dotted 0.35 / 0.5 |
 | Paved path | Red 0.30 mm, solid |
 | Closed | Black × every 8 mm over the trail |
 
-Difficulty comes from OSM `sac_scale`, overridden in `authored/corrections.gpkg`. Trail names are 6.5 pt dark red `#8b1a1a`, along the line.
+Trail names are 6.5 pt dark red `#8b1a1a`, along the line.
 
 ## Points of interest
 
